@@ -2,332 +2,301 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Compel Tarama</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Compel Marka Tarayıcı</title>
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body { margin: 0; background: #0b0f14; color: #e6edf3; }
-    header { padding: 12px 16px; border-bottom: 1px solid #1f2a37; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    header h1 { font-size: 16px; margin: 0; }
-    header .pill { padding: 6px 10px; border: 1px solid #1f2a37; border-radius: 999px; font-size: 12px; opacity: 0.9; }
-    header button { padding: 8px 10px; border: 1px solid #334155; background: #111827; color: #e6edf3; border-radius: 8px; cursor: pointer; }
-    header button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .wrap { display: grid; grid-template-columns: 340px 1fr; gap: 0; height: calc(100vh - 57px); }
-    aside { border-right: 1px solid #1f2a37; overflow: auto; }
-    main { overflow: auto; }
-
-    .brandbar { padding: 10px 12px; position: sticky; top: 0; background: #0b0f14; border-bottom: 1px solid #1f2a37; }
-    .brandbar input { width: 100%; padding: 10px 10px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e6edf3; }
-
-    .brandlist { list-style: none; margin: 0; padding: 8px; }
-    .branditem { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid transparent; border-radius: 10px; }
-    .branditem:hover { border-color: #1f2a37; background: rgba(255,255,255,0.03); }
-    .branditem label { cursor: pointer; width: 100%; display: flex; justify-content: space-between; gap: 8px; }
-    .branditem .left { display: inline-flex; gap: 8px; align-items: baseline; }
-    .branditem .idx { opacity: 0.7; width: 18px; text-align: right; }
-    .branditem .name { font-weight: 600; }
-    .branditem .count { opacity: 0.75; font-size: 12px; white-space: nowrap; }
-
-    .log { padding: 12px 16px; border-bottom: 1px solid #1f2a37; }
-    .log pre { margin: 0; white-space: pre-wrap; font-size: 12px; line-height: 1.35; opacity: 0.9; }
-
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { border-bottom: 1px solid #1f2a37; padding: 10px 12px; vertical-align: top; }
-    th { text-align: left; position: sticky; top: 0; background: #0b0f14; z-index: 1; }
-    td a { color: #93c5fd; text-decoration: none; }
-    td a:hover { text-decoration: underline; }
-
-    .muted { opacity: 0.7; }
-
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0b0d12; color:#eaeef7; }
+    header { padding:14px 16px; border-bottom:1px solid #1f2430; display:flex; gap:10px; align-items:center; }
+    header .pill { font-size:12px; padding:4px 8px; border:1px solid #2a3140; border-radius:999px; color:#cbd5e1; }
+    main { display:grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 58px); }
+    aside { border-right:1px solid #1f2430; padding:14px; overflow:auto; }
+    section { padding:14px; overflow:auto; }
+    h2 { margin:0 0 10px 0; font-size:14px; color:#cbd5e1; letter-spacing:.2px; display:flex; justify-content:space-between; align-items:center; }
+    .btnrow { display:flex; gap:8px; margin:10px 0 12px 0; flex-wrap:wrap; }
+    button {
+      background:#111827; color:#eaeef7; border:1px solid #2a3140;
+      padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:13px;
+    }
+    button:hover { border-color:#3a465f; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    .list { display:flex; flex-direction:column; gap:6px; }
+    label.brand {
+      display:flex; gap:10px; align-items:center; padding:10px; border:1px solid #1f2430; border-radius:12px;
+      background:#0f1320;
+    }
+    label.brand:hover { border-color:#2a3140; }
+    label.brand input { width:18px; height:18px; }
+    .meta { display:flex; flex-direction:column; line-height:1.15; }
+    .meta .name { font-weight:800; }
+    .meta .sub { font-size:12px; color:#9aa7bd; margin-top:2px; }
+    .status { font-size:12px; color:#9aa7bd; margin:6px 0 10px 0; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid #1f2430; padding:10px 8px; text-align:left; vertical-align:top; }
+    th { font-size:12px; color:#cbd5e1; position:sticky; top:0; background:#0b0d12; }
+    td { font-size:13px; color:#eaeef7; }
+    a { color:#93c5fd; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .small { font-size:12px; color:#9aa7bd; }
+    .rightBtns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .ok { color:#86efac; }
+    .bad { color:#fca5a5; }
+    .unk { color:#fcd34d; }
     @media (max-width: 900px) {
-      .wrap { grid-template-columns: 1fr; height: auto; }
-      aside { height: 45vh; border-right: none; border-bottom: 1px solid #1f2a37; }
-      main { height: 55vh; }
+      main { grid-template-columns: 1fr; }
+      aside { border-right:0; border-bottom:1px solid #1f2430; }
+      th { position:static; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Compel Tarama</h1>
-    <span class="pill" id="selCount">0/0 seçili</span>
-    <button id="btnAll">Tümünü Seç</button>
-    <button id="btnClear">Temizle</button>
-    <button id="btnScan">Taramayı Başlat</button>
-    <button id="btnExport" disabled>TXT Export</button>
-    <span class="pill muted" id="status">Hazır</span>
-  </header>
+<header>
+  <strong>Compel Marka Tarayıcı</strong>
+  <span class="pill">Stok + EAN (fiyat yok)</span>
+</header>
 
-  <div class="wrap">
-    <aside>
-      <div class="brandbar">
-        <input id="brandFilter" placeholder="Marka ara..." />
-      </div>
-      <ul class="brandlist" id="brandList"></ul>
-    </aside>
+<main>
+  <aside>
+    <h2>
+      <span>Markalar</span>
+      <span class="pill" id="selCount">0/0</span>
+    </h2>
 
-    <main>
-      <div class="log"><pre id="log"></pre></div>
-      <table>
-        <thead>
-          <tr>
-            <th>Marka</th>
-            <th>Ürün Adı</th>
-            <th>Ürün Kodu</th>
-            <th>EAN</th>
-            <th>Stok</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </main>
-  </div>
+    <div class="btnrow">
+      <button id="btnAll">Tümünü Seç</button>
+      <button id="btnNone">Temizle</button>
+      <button id="btnScan">Taramayı Başlat</button>
+    </div>
+
+    <div class="list" id="brandList"></div>
+  </aside>
+
+  <section>
+    <div class="rightBtns">
+      <button id="btnExport" disabled>TXT Export</button>
+      <button id="btnClear" disabled>Sonuçları Temizle</button>
+    </div>
+    <div class="status" id="status">Hazır.</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Marka</th>
+          <th>Ürün</th>
+          <th>Stok</th>
+          <th>EAN</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <p class="small">Not: EAN çoğu üründe URL içinden alınır (13 hane). Bazılarında boş kalabilir.</p>
+  </section>
+</main>
 
 <script>
-  // !!! burayi kendi worker domain'inle birak
-  const API_BASE = 'https://robot-workstation.tvkapora.workers.dev';
+  // ✅ BURAYI DEĞİŞTİR
+  // Örn: const API_BASE = "https://compel-api.senin-domainin.dev";
+  // veya: const API_BASE = "https://xxxx.workers.dev";
+  const API_BASE = "https://SENIN-API.dev";
 
-  const $ = (q) => document.querySelector(q);
-  const el = (tag, attrs = {}, children = []) => {
-    const n = document.createElement(tag);
-    Object.entries(attrs).forEach(([k,v]) => {
-      if (k === 'class') n.className = v;
-      else if (k === 'text') n.textContent = v;
-      else if (k === 'html') n.innerHTML = v;
-      else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
-      else n.setAttribute(k, v);
-    });
-    for (const c of children) n.appendChild(c);
-    return n;
+  const els = {
+    list: document.getElementById('brandList'),
+    selCount: document.getElementById('selCount'),
+    btnAll: document.getElementById('btnAll'),
+    btnNone: document.getElementById('btnNone'),
+    btnScan: document.getElementById('btnScan'),
+    btnExport: document.getElementById('btnExport'),
+    btnClear: document.getElementById('btnClear'),
+    status: document.getElementById('status'),
+    rows: document.getElementById('rows'),
   };
 
   let brands = [];
-  let results = []; // {brand,name,productCode,ean,stock,url}
+  let selected = new Set();
+  let results = [];
   let scanning = false;
 
-  function logLine(s) {
-    const p = $('#log');
-    p.textContent += (p.textContent ? '\n' : '') + s;
-    p.scrollTop = p.scrollHeight;
+  function updateSelCount(){
+    els.selCount.textContent = `${selected.size}/${brands.length}`;
   }
 
-  function setStatus(s) { $('#status').textContent = s; }
-
-  function updateSelectedCount() {
-    const total = brands.length;
-    const sel = document.querySelectorAll('.brandCheck:checked').length;
-    $('#selCount').textContent = sel + '/' + total + ' seçili';
+  function escapeHtml(s){
+    return String(s ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#39;");
   }
 
-  function renderBrands(list) {
-    const ul = $('#brandList');
-    ul.innerHTML = '';
-    list.forEach((b, i) => {
+  function renderBrands(){
+    els.list.innerHTML = '';
+    const sorted = [...brands].sort((a,b)=> a.name.localeCompare(b.name,'tr',{sensitivity:'base'}));
+    sorted.forEach((b, idx) => {
       const id = 'b_' + b.id;
-      const cb = el('input', { type: 'checkbox', id, class: 'brandCheck', 'data-id': b.id });
-      cb.addEventListener('change', updateSelectedCount);
-
-      const label = el('label', { for: id }, [
-        el('span', { class: 'left' }, [
-          el('span', { class: 'idx', text: String(i + 1) }),
-          el('span', { class: 'name', text: b.name }),
-        ]),
-        el('span', { class: 'count', text: b.productCount + ' Ürün' }),
-      ]);
-
-      ul.appendChild(el('li', { class: 'branditem' }, [cb, label]));
+      const label = document.createElement('label');
+      label.className = 'brand';
+      label.innerHTML = `
+        <input type="checkbox" id="${id}" />
+        <div class="meta">
+          <div class="name">${idx+1} ${escapeHtml(b.name)} - ${b.count} Ürün</div>
+          <div class="sub">${escapeHtml(b.slug)}</div>
+        </div>
+      `;
+      const cb = label.querySelector('input');
+      cb.checked = selected.has(b.id);
+      cb.addEventListener('change', () => {
+        if (cb.checked) selected.add(b.id);
+        else selected.delete(b.id);
+        updateSelCount();
+      });
+      els.list.appendChild(label);
     });
-    updateSelectedCount();
+    updateSelCount();
   }
 
-  function getSelectedBrands() {
-    const ids = Array.from(document.querySelectorAll('.brandCheck:checked')).map(x => String(x.dataset.id));
-    return brands.filter(b => ids.includes(String(b.id)));
+  function setStatus(s){ els.status.textContent = s; }
+
+  function setScanning(on){
+    scanning = on;
+    els.btnScan.disabled = on;
+    els.btnAll.disabled = on;
+    els.btnNone.disabled = on;
   }
 
-  function setButtonsEnabled(on) {
-    $('#btnAll').disabled = !on;
-    $('#btnClear').disabled = !on;
-    $('#btnScan').disabled = !on;
-    $('#brandFilter').disabled = !on;
+  function rowClass(stock){
+    const t = (stock||'').toLowerCase();
+    if (t.includes('yok')) return 'bad';
+    if (t.includes('bilinmiyor')) return 'unk';
+    return 'ok';
   }
 
-  function addResultRow(r) {
+  function addResult(r){
+    results.push(r);
     const tr = document.createElement('tr');
-    tr.appendChild(el('td', { text: r.brand }));
-    tr.appendChild(el('td', { text: r.name || '' }));
-    tr.appendChild(el('td', { text: r.productCode || '' }));
-    tr.appendChild(el('td', { text: r.ean || '' }));
-    tr.appendChild(el('td', { text: r.stock || '' }));
-    const a = el('a', { href: r.url, target: '_blank', rel: 'noreferrer', text: 'Aç' });
-    tr.appendChild(el('td', {}, [a]));
-    $('#tbody').appendChild(tr);
+    tr.innerHTML = `
+      <td>${escapeHtml(r.brand)}</td>
+      <td>${escapeHtml(r.title)}</td>
+      <td class="${rowClass(r.stock)}">${escapeHtml(r.stock)}</td>
+      <td>${escapeHtml(r.ean || '')}</td>
+      <td><a href="${r.url}" target="_blank" rel="noopener">Aç</a></td>
+    `;
+    els.rows.appendChild(tr);
+    els.btnExport.disabled = results.length === 0;
+    els.btnClear.disabled = results.length === 0;
   }
 
-  async function apiJson(path) {
-    const res = await fetch(API_BASE + path, { mode: 'cors' });
-    if (!res.ok) throw new Error('API hata: ' + res.status);
-    return await res.json();
+  function clearResults(){
+    results = [];
+    els.rows.innerHTML = '';
+    els.btnExport.disabled = true;
+    els.btnClear.disabled = true;
+    setStatus('Temizlendi.');
   }
 
-  async function loadBrands() {
-    setStatus('Markalar yükleniyor...');
-    const data = await apiJson('/api/brands');
-    brands = (data.brands || []).slice().sort((a,b) => (a.name || '').localeCompare((b.name || ''), 'tr'));
-    renderBrands(brands);
-    setStatus('Hazır');
+  function downloadTxt(){
+    const lines = results.map(r => {
+      const ean = r.ean ? r.ean : '';
+      return `${r.brand} | ${r.title} | ${r.stock} | EAN:${ean} | ${r.url}`;
+    });
+    const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'compel-sonuc.txt';
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    a.remove();
   }
 
-  // simple concurrency pool
-  async function pool(items, limit, worker) {
-    let i = 0;
-    const running = new Set();
-
-    const runOne = async () => {
-      if (i >= items.length) return;
-      const item = items[i++];
-      const p = (async () => worker(item))().finally(() => running.delete(p));
-      running.add(p);
-      if (running.size >= limit) await Promise.race(running);
-      await runOne();
-    };
-
-    const starters = [];
-    for (let k = 0; k < Math.min(limit, items.length); k++) starters.push(runOne());
-    await Promise.all(starters);
-    await Promise.all(running);
+  async function loadBrands(){
+    const res = await fetch(`${API_BASE}/api/brands`);
+    if (!res.ok) throw new Error('brands ' + res.status);
+    brands = await res.json();
+    renderBrands();
   }
 
-  async function startScan() {
-    if (scanning) return;
-    const sel = getSelectedBrands();
-    if (!sel.length) {
-      alert('En az 1 marka seç');
+  async function scan(){
+    if (selected.size === 0) { setStatus('En az 1 marka seç.'); return; }
+
+    clearResults();
+    setScanning(true);
+    setStatus('Başladı...');
+
+    const chosen = brands.filter(b => selected.has(b.id));
+    const res = await fetch(`${API_BASE}/api/scan`, {
+      method: 'POST',
+      headers: {'content-type':'application/json'},
+      body: JSON.stringify({ brands: chosen }),
+    });
+
+    if (!res.ok) {
+      setStatus('Hata: ' + res.status);
+      setScanning(false);
       return;
     }
 
-    scanning = true;
-    setButtonsEnabled(false);
-    $('#btnExport').disabled = true;
-    $('#tbody').innerHTML = '';
-    $('#log').textContent = '';
-    results = [];
-
-    try {
-      setStatus('Tarama başladı');
-      logLine('Secilen marka sayisi: ' + sel.length);
-
-      for (const b of sel) {
-        logLine('---');
-        logLine('Marka: ' + b.name);
-
-        const pages = Math.max(1, Math.ceil((b.productCount || 0) / 20));
-        const productRefs = [];
-
-        for (let page = 1; page <= pages; page++) {
-          setStatus(b.name + ' sayfa ' + page + '/' + pages);
-          const data = await apiJson('/api/brand-products?brandId=' + encodeURIComponent(b.id) + '&page=' + page);
-          const products = (data.products || []).map(p => ({
-            brand: b.name,
-            url: p.url,
-            listingTitle: p.listingTitle || '',
-            listingStock: p.stock || ''
-          }));
-          for (const p of products) productRefs.push(p);
-          logLine('Sayfa ' + page + ': ' + products.length + ' urun');
-        }
-
-        // dedupe
-        const byUrl = new Map();
-        for (const p of productRefs) if (p.url && !byUrl.has(p.url)) byUrl.set(p.url, p);
-        const uniq = Array.from(byUrl.values());
-        logLine('Toplam urun (tekil): ' + uniq.length);
-
-        let done = 0;
-        await pool(uniq, 6, async (p) => {
-          const data = await apiJson('/api/product-details?url=' + encodeURIComponent(p.url));
-          const row = {
-            brand: p.brand,
-            name: data.name || '',
-            productCode: data.productCode || p.listingTitle || '',
-            ean: data.ean || '',
-            stock: data.stock || p.listingStock || '',
-            url: p.url,
-          };
-          results.push(row);
-          addResultRow(row);
-          done++;
-          if (done % 10 === 0) setStatus(b.name + ': ' + done + '/' + uniq.length);
-        });
-
-        logLine('Bitti: ' + b.name + ' (' + uniq.length + ')');
-      }
-
-      setStatus('Tarama bitti. Sonuc: ' + results.length);
-      $('#btnExport').disabled = results.length === 0;
-    } catch (e) {
-      console.error(e);
-      setStatus('Hata');
-      alert(String(e && e.message ? e.message : e));
-    } finally {
-      scanning = false;
-      setButtonsEnabled(true);
-      updateSelectedCount();
+    const reader = res.body?.getReader?.();
+    if (!reader) {
+      setStatus('Tarama bitti (stream yok).');
+      setScanning(false);
+      return;
     }
+
+    const decoder = new TextDecoder();
+    let buf = '';
+    let totalProducts = 0;
+
+    while (true) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, {stream:true});
+
+      let idx;
+      while ((idx = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, idx).trim();
+        buf = buf.slice(idx+1);
+        if (!line) continue;
+
+        const msg = JSON.parse(line);
+
+        if (msg.type === 'brandStart') {
+          setStatus(`Taranıyor: ${msg.brand} (sayfa ${msg.page}/${msg.pages})`);
+        } else if (msg.type === 'page') {
+          setStatus(`Taranıyor: ${msg.brand} (sayfa ${msg.page}/${msg.pages})`);
+        } else if (msg.type === 'product') {
+          totalProducts++;
+          addResult(msg.data);
+        } else if (msg.type === 'info') {
+          setStatus(msg.message);
+        } else if (msg.type === 'done') {
+          setStatus(`Bitti. Toplam ürün: ${totalProducts}`);
+        } else if (msg.type === 'error') {
+          setStatus(`Hata: ${msg.message}`);
+        }
+      }
+    }
+
+    setScanning(false);
   }
 
-  function exportTxt() {
-    if (!results.length) return;
-    const header = ['Marka', 'UrunAdi', 'UrunKodu', 'EAN', 'Stok', 'URL'].join('\t');
-    const lines = results.map(r => [
-      r.brand || '',
-      (r.name || '').replace(/\s+/g, ' ').trim(),
-      r.productCode || '',
-      r.ean || '',
-      r.stock || '',
-      r.url || ''
-    ].join('\t'));
-    const content = [header, ...lines].join('\n');
-
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'compel_export.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }
-
-  // UI
-  $('#btnAll').addEventListener('click', () => {
-    document.querySelectorAll('.brandCheck').forEach(x => (x.checked = true));
-    updateSelectedCount();
+  els.btnAll.addEventListener('click', () => {
+    brands.forEach(b => selected.add(b.id));
+    renderBrands();
   });
 
-  $('#btnClear').addEventListener('click', () => {
-    document.querySelectorAll('.brandCheck').forEach(x => (x.checked = false));
-    updateSelectedCount();
+  els.btnNone.addEventListener('click', () => {
+    selected.clear();
+    renderBrands();
   });
 
-  $('#btnScan').addEventListener('click', startScan);
-  $('#btnExport').addEventListener('click', exportTxt);
+  els.btnScan.addEventListener('click', scan);
+  els.btnExport.addEventListener('click', downloadTxt);
+  els.btnClear.addEventListener('click', clearResults);
 
-  $('#brandFilter').addEventListener('input', (e) => {
-    const q = (e.target.value || '').toLowerCase();
-    const filtered = !q
-      ? brands
-      : brands.filter(b => (b.name || '').toLowerCase().includes(q));
-    renderBrands(filtered);
-  });
-
-  loadBrands().catch(err => {
-    console.error(err);
-    setStatus('Hata: markalar yuklenemedi');
-    logLine('API_BASE dogru mu? ' + API_BASE);
-    logLine(String(err));
-  });
+  loadBrands().catch((e) => setStatus('Markalar yüklenemedi: ' + (e?.message || e)));
 </script>
 </body>
 </html>
