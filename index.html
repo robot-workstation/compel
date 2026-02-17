@@ -5,27 +5,42 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Compel Robot</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#0b0d10;color:#e9eef5}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#fff;color:#111}
     .wrap{max-width:1200px;margin:0 auto;padding:16px}
     .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    input,button{padding:10px 12px;border-radius:10px;border:1px solid #2a3140;background:#121722;color:#e9eef5}
+    input,button{padding:10px 12px;border-radius:10px;border:1px solid #d6dbe6;background:#fff;color:#111}
     input{min-width:320px;flex:1}
     button{cursor:pointer}
     button:disabled{opacity:.6;cursor:not-allowed}
-    .grid{display:grid;grid-template-columns:320px 1fr;gap:16px;margin-top:14px}
-    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
-    .card{border:1px solid #1f2633;background:#0f141d;border-radius:14px;padding:12px}
-    .muted{color:#9aa7bd;font-size:13px}
-    .brands{max-height:60vh;overflow:auto;margin-top:10px;padding-right:6px}
-    .brand{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px;border-bottom:1px solid #1a2130}
-    .brand label{display:flex;gap:8px;align-items:center;cursor:pointer}
-    .pill{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid #2a3140;color:#cfe0ff}
+    .muted{color:#6b7280;font-size:13px;margin-top:8px}
+    .card{border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:12px;margin-top:14px}
+    .cardHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .title{font-weight:700}
+    .brandGrid{
+      margin-top:10px;
+      column-count: 3;
+      column-gap: 18px;
+    }
+    @media (max-width: 980px){ .brandGrid{column-count:2} }
+    @media (max-width: 640px){ .brandGrid{column-count:1} }
+
+    .brandItem{
+      break-inside: avoid;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:8px 0;
+      border-bottom:1px solid #f0f2f6;
+    }
+    .brandLeft{display:flex;align-items:center;gap:10px;min-width:0}
+    .brandName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width: 320px}
+    .count{color:#374151;font-size:13px;white-space:nowrap}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #1a2130;vertical-align:top}
-    th{position:sticky;top:0;background:#0f141d}
-    a{color:#9fd3ff;text-decoration:none}
-    .btnrow{display:flex;gap:8px;flex-wrap:wrap}
-    .status{margin-top:8px}
+    th,td{padding:10px;border-bottom:1px solid #eef2f7;vertical-align:top;text-align:left}
+    th{background:#fafafa;position:sticky;top:0}
+    a{color:#2563eb;text-decoration:none}
+    .tableWrap{margin-top:10px;overflow:auto;max-height:70vh;border-radius:12px;border:1px solid #eef2f7}
   </style>
 </head>
 <body>
@@ -36,49 +51,46 @@
       <button id="btnRun">Getir</button>
       <button id="btnStop" disabled>Dur</button>
     </div>
-    <div class="muted">Not: Max sayfa = 0 ise kategorideki tüm sayfaları çeker.</div>
+    <div class="muted">Max sayfa = 0 ise kategorideki tüm sayfaları çeker.</div>
 
-    <div class="grid">
-      <aside class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <div>
-            <div style="font-weight:700">Markalar</div>
-            <div class="muted" id="brandMeta">0 marka</div>
-          </div>
-          <div class="btnrow">
-            <button id="btnSelectAll" disabled>Tümünü Seç</button>
-            <button id="btnClearAll">Komple Temizle</button>
-          </div>
+    <section class="card">
+      <div class="cardHead">
+        <div>
+          <div class="title">Markalar (A → Z)</div>
+          <div class="muted" id="brandMeta">0 marka</div>
         </div>
-
-        <div class="brands" id="brandList"></div>
-      </aside>
-
-      <main class="card">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
-          <div>
-            <div style="font-weight:700">Ürünler</div>
-            <div class="muted" id="prodMeta">0 ürün</div>
-          </div>
-          <div class="status muted" id="status">Hazır.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button id="btnSelectAll" disabled>Tümünü Seç</button>
+          <span class="muted" id="status">Hazır.</span>
         </div>
+      </div>
 
-        <div style="margin-top:10px;overflow:auto;max-height:70vh;border-radius:12px;border:1px solid #1a2130">
-          <table id="tbl">
-            <thead>
-              <tr>
-                <th style="min-width:150px">Marka</th>
-                <th style="min-width:340px">Ürün</th>
-                <th style="min-width:110px">Kod</th>
-                <th style="min-width:140px">Stok</th>
-                <th style="min-width:80px">Link</th>
-              </tr>
-            </thead>
-            <tbody id="rows"></tbody>
-          </table>
+      <div class="brandGrid" id="brandList"></div>
+    </section>
+
+    <section class="card">
+      <div class="cardHead">
+        <div>
+          <div class="title">Ürünler</div>
+          <div class="muted" id="prodMeta">0 ürün</div>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="min-width:160px">Marka</th>
+              <th style="min-width:360px">Ürün</th>
+              <th style="min-width:120px">Kod</th>
+              <th style="min-width:140px">Stok</th>
+              <th style="min-width:80px">Link</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
 <script>
@@ -92,7 +104,6 @@
   const btnRun = $("btnRun");
   const btnStop = $("btnStop");
   const btnSelectAll = $("btnSelectAll");
-  const btnClearAll = $("btnClearAll");
   const brandList = $("brandList");
   const brandMeta = $("brandMeta");
   const prodMeta = $("prodMeta");
@@ -103,34 +114,27 @@
     ctrl: null,
     products: [],
     brandCounts: new Map(),
-    selectedBrands: new Set(), // boşsa => filtre yok (hepsini göster)
+    filterMode: "ALL",        // "ALL" | "CUSTOM"
+    selectedBrands: new Set(),// CUSTOM modunda kullanılır
     rowByUrl: new Map(),
+    allBrands: [],
   };
-
-  const setStatus = (s) => statusEl.textContent = s;
 
   const enc = encodeURIComponent;
 
-  function resetAll() {
-    if (state.ctrl) state.ctrl.abort();
-    state.ctrl = null;
-    state.products = [];
-    state.brandCounts = new Map();
-    state.selectedBrands = new Set();
-    state.rowByUrl = new Map();
-    brandList.innerHTML = "";
-    rowsEl.innerHTML = "";
-    brandMeta.textContent = "0 marka";
-    prodMeta.textContent = "0 ürün";
-    setStatus("Hazır.");
-    btnStop.disabled = true;
-    btnSelectAll.disabled = true;
-    btnRun.disabled = false;
+  const setStatus = (s) => statusEl.textContent = s;
+
+  function escapeHtml(s) {
+    return (s ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
   }
 
   function shouldShowBrand(brand) {
-    // seçili set boşsa => filtre yok => hepsi görünür
-    if (state.selectedBrands.size === 0) return true;
+    if (state.filterMode === "ALL") return true;
     return state.selectedBrands.has(brand);
   }
 
@@ -145,72 +149,64 @@
   function renderBrands() {
     const items = [...state.brandCounts.entries()]
       .map(([brand, count]) => ({ brand, count }))
-      .sort((a,b) => (b.count - a.count) || a.brand.localeCompare(b.brand, "tr"));
+      .sort((a,b) => a.brand.localeCompare(b.brand, "tr"));
 
+    state.allBrands = items.map(x => x.brand);
     brandMeta.textContent = `${items.length} marka`;
 
     brandList.innerHTML = items.map(({brand,count}) => {
-      const checked = state.selectedBrands.size === 0 ? true : state.selectedBrands.has(brand);
+      const checked = (state.filterMode === "ALL") ? true : state.selectedBrands.has(brand);
       return `
-        <div class="brand">
-          <label title="${brand}">
-            <input type="checkbox" data-brand="${brand}" ${checked ? "checked" : ""}/>
-            <span>${brand}</span>
+        <div class="brandItem">
+          <label class="brandLeft" title="${escapeHtml(brand)}">
+            <input type="checkbox" data-brand="${escapeHtml(brand)}" ${checked ? "checked" : ""} />
+            <span class="brandName">${escapeHtml(brand)}</span>
           </label>
-          <span class="pill">${count}</span>
+          <span class="count">${count} ürün</span>
         </div>
       `;
     }).join("");
 
-    // checkbox events
     brandList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       cb.addEventListener("change", () => {
         const brand = cb.getAttribute("data-brand");
-        // set boşken "hepsi seçili" davranışı var. İlk değişiklikte set'i doldurup devam ediyoruz.
-        if (state.selectedBrands.size === 0) {
-          // önce hepsini seçili yap
-          state.selectedBrands = new Set(items.map(x => x.brand));
+
+        // ALL modundayken ilk değişiklikte CUSTOM'a geç
+        if (state.filterMode === "ALL") {
+          state.filterMode = "CUSTOM";
+          state.selectedBrands = new Set(state.allBrands); // hepsi seçili başlasın
         }
+
         if (cb.checked) state.selectedBrands.add(brand);
         else state.selectedBrands.delete(brand);
 
-        // hepsi tekrar seçiliyse filtreyi boş set'e çevir (hepsi)
-        if (state.selectedBrands.size === items.length) state.selectedBrands = new Set();
+        // tekrar hepsi seçili olduysa ALL'a geri dön
+        if (state.selectedBrands.size === state.allBrands.length) {
+          state.filterMode = "ALL";
+          state.selectedBrands.clear();
+        }
 
         applyFilter();
+        // checkboxlar ALL moduna döndüyse hepsi işaretli görünsün
+        if (state.filterMode === "ALL") renderBrands();
       });
     });
 
     btnSelectAll.disabled = items.length === 0;
   }
 
-  function addOrUpdateBrandCount(brand) {
-    const b = brand || "Bilinmiyor";
-    state.brandCounts.set(b, (state.brandCounts.get(b) || 0) + 1);
-  }
-
   function addRow(p) {
     const tr = document.createElement("tr");
-    tr.dataset.brand = p.brand || "Bilinmiyor";
     tr.innerHTML = `
-      <td>${escapeHtml(p.brand || "Bilinmiyor")}</td>
-      <td>${escapeHtml(p.name || "")}</td>
-      <td>${escapeHtml(p.code || "")}</td>
-      <td>${escapeHtml(p.stock || "")}</td>
+      <td>${escapeHtml(p.brand)}</td>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.code)}</td>
+      <td>${escapeHtml(p.stock)}</td>
       <td><a href="${p.url}" target="_blank" rel="noopener">Aç</a></td>
     `;
     rowsEl.appendChild(tr);
     state.rowByUrl.set(p.url, tr);
-    tr.style.display = shouldShowBrand(tr.dataset.brand) ? "" : "none";
-  }
-
-  function escapeHtml(s) {
-    return (s ?? "").toString()
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#39;");
+    tr.style.display = shouldShowBrand(p.brand) ? "" : "none";
   }
 
   async function fetchJSON(url, signal) {
@@ -228,9 +224,8 @@
     for (let page = 2; page <= wantPages; page++) {
       const j = await fetchJSON(`${WORKER}/list?b=${enc(categoryUrl)}&p=${page}`, signal);
       (j.links || []).forEach(x => all.add(x));
-      setStatus(`Liste çekiliyor… Sayfa ${page}/${wantPages} (link: ${all.size})`);
+      setStatus(`Liste: Sayfa ${page}/${wantPages} (link: ${all.size})`);
     }
-
     return [...all];
   }
 
@@ -242,13 +237,12 @@
         const idx = i++;
         if (signal.aborted) break;
         try {
-          const res = await workerFn(items[idx], idx);
-          results[idx] = res;
-        } catch (e) {
+          results[idx] = await workerFn(items[idx], idx);
+        } catch {
           results[idx] = null;
         } finally {
           done++;
-          setStatus(`Ürün çekiliyor… ${done}/${items.length}`);
+          setStatus(`Ürünler: ${done}/${items.length}`);
         }
       }
     });
@@ -270,13 +264,15 @@
     state.ctrl = new AbortController();
     const signal = state.ctrl.signal;
 
-    // temizle ama inputlar kalsın
+    // reset (her çalıştırmada temiz başla)
     rowsEl.innerHTML = "";
     brandList.innerHTML = "";
     state.products = [];
     state.brandCounts = new Map();
-    state.selectedBrands = new Set();
-    state.rowByUrl = new Map();
+    state.filterMode = "ALL";
+    state.selectedBrands.clear();
+    state.rowByUrl.clear();
+    state.allBrands = [];
     prodMeta.textContent = "0 ürün";
     brandMeta.textContent = "0 marka";
 
@@ -285,25 +281,24 @@
 
       setStatus("Linkler alınıyor…");
       const links = await fetchLinks(categoryUrl, maxPages, signal);
-      setStatus(`Toplam ${links.length} ürün linki bulundu. Ürünler çekiliyor…`);
+      setStatus(`Toplam ${links.length} link bulundu. Ürünler çekiliyor…`);
 
       const prodFn = async (url) => {
         const j = await fetchJSON(`${WORKER}/prod?u=${enc(url)}`, signal);
-        const p = {
+        return {
           url: j.url || url,
           name: j.name || "",
           code: j.code || "",
           brand: (j.brand || "").trim() || "Bilinmiyor",
           stock: j.stock || "",
         };
-        return p;
       };
 
       const out = await runQueue(links, prodFn, 8, signal);
 
       for (const p of out.filter(Boolean)) {
         state.products.push(p);
-        addOrUpdateBrandCount(p.brand);
+        state.brandCounts.set(p.brand, (state.brandCounts.get(p.brand) || 0) + 1);
         addRow(p);
       }
 
@@ -311,7 +306,6 @@
       renderBrands();
       applyFilter();
       setStatus("Bitti ✅");
-
     } catch (e) {
       if (e?.name === "AbortError") setStatus("Durduruldu.");
       else setStatus("Hata oldu (fetch_failed).");
@@ -329,16 +323,15 @@
   });
 
   btnSelectAll.addEventListener("click", () => {
-    // filtreyi boş set'e çek => hepsi görünür ve hepsi seçili görünür
-    state.selectedBrands = new Set();
+    state.filterMode = "ALL";
+    state.selectedBrands.clear();
     renderBrands();
     applyFilter();
   });
 
-  btnClearAll.addEventListener("click", resetAll);
-
-  // default
+  // varsayılan
   elCat.value = "https://compel.com.tr/10-dj-urunleri";
+  setStatus("Hazır.");
 })();
 </script>
 </body>
