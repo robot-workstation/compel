@@ -1,271 +1,333 @@
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compel Tarama</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #0b0f14; color: #e6edf3; }
+    header { padding: 12px 16px; border-bottom: 1px solid #1f2a37; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    header h1 { font-size: 16px; margin: 0; }
+    header .pill { padding: 6px 10px; border: 1px solid #1f2a37; border-radius: 999px; font-size: 12px; opacity: 0.9; }
+    header button { padding: 8px 10px; border: 1px solid #334155; background: #111827; color: #e6edf3; border-radius: 8px; cursor: pointer; }
+    header button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    // CORS / preflight
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders() });
+    .wrap { display: grid; grid-template-columns: 340px 1fr; gap: 0; height: calc(100vh - 57px); }
+    aside { border-right: 1px solid #1f2a37; overflow: auto; }
+    main { overflow: auto; }
+
+    .brandbar { padding: 10px 12px; position: sticky; top: 0; background: #0b0f14; border-bottom: 1px solid #1f2a37; }
+    .brandbar input { width: 100%; padding: 10px 10px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e6edf3; }
+
+    .brandlist { list-style: none; margin: 0; padding: 8px; }
+    .branditem { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid transparent; border-radius: 10px; }
+    .branditem:hover { border-color: #1f2a37; background: rgba(255,255,255,0.03); }
+    .branditem label { cursor: pointer; width: 100%; display: flex; justify-content: space-between; gap: 8px; }
+    .branditem .left { display: inline-flex; gap: 8px; align-items: baseline; }
+    .branditem .idx { opacity: 0.7; width: 18px; text-align: right; }
+    .branditem .name { font-weight: 600; }
+    .branditem .count { opacity: 0.75; font-size: 12px; white-space: nowrap; }
+
+    .log { padding: 12px 16px; border-bottom: 1px solid #1f2a37; }
+    .log pre { margin: 0; white-space: pre-wrap; font-size: 12px; line-height: 1.35; opacity: 0.9; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid #1f2a37; padding: 10px 12px; vertical-align: top; }
+    th { text-align: left; position: sticky; top: 0; background: #0b0f14; z-index: 1; }
+    td a { color: #93c5fd; text-decoration: none; }
+    td a:hover { text-decoration: underline; }
+
+    .muted { opacity: 0.7; }
+
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; height: auto; }
+      aside { height: 45vh; border-right: none; border-bottom: 1px solid #1f2a37; }
+      main { height: 55vh; }
     }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Compel Tarama</h1>
+    <span class="pill" id="selCount">0/0 seçili</span>
+    <button id="btnAll">Tümünü Seç</button>
+    <button id="btnClear">Temizle</button>
+    <button id="btnScan">Taramayı Başlat</button>
+    <button id="btnExport" disabled>TXT Export</button>
+    <span class="pill muted" id="status">Hazır</span>
+  </header>
 
-    try {
-      if (url.pathname === '/api/brands') {
-        return jsonResponse({ brands: BRANDS });
-      }
+  <div class="wrap">
+    <aside>
+      <div class="brandbar">
+        <input id="brandFilter" placeholder="Marka ara..." />
+      </div>
+      <ul class="brandlist" id="brandList"></ul>
+    </aside>
 
-      if (url.pathname === '/api/brand-products') {
-        const brandId = String(url.searchParams.get('brandId') || '').trim();
-        const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
-        const brand = BRANDS.find(b => String(b.id) === brandId);
-        if (!brand) return jsonResponse({ error: 'brandId gecersiz' }, 400);
+    <main>
+      <div class="log"><pre id="log"></pre></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Marka</th>
+            <th>Ürün Adı</th>
+            <th>Ürün Kodu</th>
+            <th>EAN</th>
+            <th>Stok</th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </main>
+  </div>
 
-        const brandUrl = new URL(`https://compel.com.tr/brand/${brand.id}-${brand.slug}`);
-        if (page > 1) brandUrl.searchParams.set('page', String(page));
+<script>
+  // !!! burayi kendi worker domain'inle birak
+  const API_BASE = 'https://robot-workstation.tvkapora.workers.dev';
 
-        const html = await fetchText(brandUrl.toString());
-        const products = parseBrandPageProducts(html);
-
-        // inject brand name and dedupe by url
-        const seen = new Set();
-        const out = [];
-        for (const p of products) {
-          const key = p.url;
-          if (!key || seen.has(key)) continue;
-          seen.add(key);
-          out.push({
-            brandId: brand.id,
-            brandName: brand.name,
-            listingTitle: p.listingTitle,
-            stock: p.stock,
-            url: p.url,
-          });
-        }
-        return jsonResponse({ brand, page, products: out });
-      }
-
-      if (url.pathname === '/api/product-details') {
-        const raw = url.searchParams.get('url') || '';
-        if (!raw) return jsonResponse({ error: 'url eksik' }, 400);
-
-        let target;
-        try {
-          target = new URL(raw);
-        } catch {
-          return jsonResponse({ error: 'url gecersiz' }, 400);
-        }
-
-        // basic safety: only allow compel.com.tr
-        const host = target.hostname.toLowerCase();
-        if (!(host === 'compel.com.tr' || host.endsWith('.compel.com.tr'))) {
-          return jsonResponse({ error: 'sadece compel.com.tr linkleri' }, 400);
-        }
-
-        const html = await fetchText(target.toString());
-        const details = parseProductDetails(html);
-        return jsonResponse({ url: target.toString(), ...details });
-      }
-
-      // default
-      return new Response('OK', {
-        status: 200,
-        headers: { ...corsHeaders(), 'content-type': 'text/plain; charset=utf-8' },
-      });
-    } catch (err) {
-      return jsonResponse({ error: String(err && err.message ? err.message : err) }, 500);
-    }
-  },
-};
-
-function corsHeaders() {
-  return {
-    'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET,OPTIONS',
-    'access-control-allow-headers': 'content-type',
-    'access-control-max-age': '86400',
+  const $ = (q) => document.querySelector(q);
+  const el = (tag, attrs = {}, children = []) => {
+    const n = document.createElement(tag);
+    Object.entries(attrs).forEach(([k,v]) => {
+      if (k === 'class') n.className = v;
+      else if (k === 'text') n.textContent = v;
+      else if (k === 'html') n.innerHTML = v;
+      else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v);
+    });
+    for (const c of children) n.appendChild(c);
+    return n;
   };
-}
 
-function jsonResponse(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: {
-      ...corsHeaders(),
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
-    },
-  });
-}
+  let brands = [];
+  let results = []; // {brand,name,productCode,ean,stock,url}
+  let scanning = false;
 
-async function fetchText(u) {
-  const res = await fetch(u, {
-    headers: {
-      'user-agent':
-        'Mozilla/5.0 (compatible; RobotWorkstation/1.0; +https://robot-workstation.tvkapora.workers.dev)',
-      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'accept-language': 'tr-TR,tr;q=0.9,en;q=0.8',
-    },
-  });
-  if (!res.ok) throw new Error(`fetch fail ${res.status} ${res.statusText}`);
-  return await res.text();
-}
-
-function parseBrandPageProducts(html) {
-  // find product titles + links
-  const re =
-    /<h[23][^>]*class="[^"]*product-title[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  const matches = [];
-  let m;
-  while ((m = re.exec(html)) !== null) {
-    const href = m[1];
-    const titleHtml = m[2];
-    const abs = new URL(href, 'https://compel.com.tr').toString();
-    const title = cleanText(titleHtml);
-    matches.push({ idx: m.index, url: abs, listingTitle: title });
+  function logLine(s) {
+    const p = $('#log');
+    p.textContent += (p.textContent ? '\n' : '') + s;
+    p.scrollTop = p.scrollHeight;
   }
 
-  // slice per product to get stock nearby
-  const out = [];
-  for (let i = 0; i < matches.length; i++) {
-    const start = matches[i].idx;
-    const end =
-      i + 1 < matches.length ? matches[i + 1].idx : Math.min(html.length, start + 8000);
-    const seg = html.slice(start, end);
-    const text = cleanText(seg);
+  function setStatus(s) { $('#status').textContent = s; }
 
-    let stock = '';
-    const qty = text.match(/Stok\s*Durumu\s*:\s*([0-9]+)\s*Stokta\s*Var/i);
-    if (qty) {
-      stock = `${qty[1]} Stokta Var`;
-    } else if (/Stokta\s*Yok/i.test(text) || /T\u00fckendi/i.test(text) || /stok.*yok/i.test(text)) {
-      stock = 'Stokta Yok';
-    } else if (/Stokta\s*Var/i.test(text)) {
-      stock = 'Stokta Var';
+  function updateSelectedCount() {
+    const total = brands.length;
+    const sel = document.querySelectorAll('.brandCheck:checked').length;
+    $('#selCount').textContent = sel + '/' + total + ' seçili';
+  }
+
+  function renderBrands(list) {
+    const ul = $('#brandList');
+    ul.innerHTML = '';
+    list.forEach((b, i) => {
+      const id = 'b_' + b.id;
+      const cb = el('input', { type: 'checkbox', id, class: 'brandCheck', 'data-id': b.id });
+      cb.addEventListener('change', updateSelectedCount);
+
+      const label = el('label', { for: id }, [
+        el('span', { class: 'left' }, [
+          el('span', { class: 'idx', text: String(i + 1) }),
+          el('span', { class: 'name', text: b.name }),
+        ]),
+        el('span', { class: 'count', text: b.productCount + ' Ürün' }),
+      ]);
+
+      ul.appendChild(el('li', { class: 'branditem' }, [cb, label]));
+    });
+    updateSelectedCount();
+  }
+
+  function getSelectedBrands() {
+    const ids = Array.from(document.querySelectorAll('.brandCheck:checked')).map(x => String(x.dataset.id));
+    return brands.filter(b => ids.includes(String(b.id)));
+  }
+
+  function setButtonsEnabled(on) {
+    $('#btnAll').disabled = !on;
+    $('#btnClear').disabled = !on;
+    $('#btnScan').disabled = !on;
+    $('#brandFilter').disabled = !on;
+  }
+
+  function addResultRow(r) {
+    const tr = document.createElement('tr');
+    tr.appendChild(el('td', { text: r.brand }));
+    tr.appendChild(el('td', { text: r.name || '' }));
+    tr.appendChild(el('td', { text: r.productCode || '' }));
+    tr.appendChild(el('td', { text: r.ean || '' }));
+    tr.appendChild(el('td', { text: r.stock || '' }));
+    const a = el('a', { href: r.url, target: '_blank', rel: 'noreferrer', text: 'Aç' });
+    tr.appendChild(el('td', {}, [a]));
+    $('#tbody').appendChild(tr);
+  }
+
+  async function apiJson(path) {
+    const res = await fetch(API_BASE + path, { mode: 'cors' });
+    if (!res.ok) throw new Error('API hata: ' + res.status);
+    return await res.json();
+  }
+
+  async function loadBrands() {
+    setStatus('Markalar yükleniyor...');
+    const data = await apiJson('/api/brands');
+    brands = (data.brands || []).slice().sort((a,b) => (a.name || '').localeCompare((b.name || ''), 'tr'));
+    renderBrands(brands);
+    setStatus('Hazır');
+  }
+
+  // simple concurrency pool
+  async function pool(items, limit, worker) {
+    let i = 0;
+    const running = new Set();
+
+    const runOne = async () => {
+      if (i >= items.length) return;
+      const item = items[i++];
+      const p = (async () => worker(item))().finally(() => running.delete(p));
+      running.add(p);
+      if (running.size >= limit) await Promise.race(running);
+      await runOne();
+    };
+
+    const starters = [];
+    for (let k = 0; k < Math.min(limit, items.length); k++) starters.push(runOne());
+    await Promise.all(starters);
+    await Promise.all(running);
+  }
+
+  async function startScan() {
+    if (scanning) return;
+    const sel = getSelectedBrands();
+    if (!sel.length) {
+      alert('En az 1 marka seç');
+      return;
     }
 
-    out.push({ url: matches[i].url, listingTitle: matches[i].listingTitle, stock });
-  }
+    scanning = true;
+    setButtonsEnabled(false);
+    $('#btnExport').disabled = true;
+    $('#tbody').innerHTML = '';
+    $('#log').textContent = '';
+    results = [];
 
-  // dedupe by url
-  const seen = new Set();
-  return out.filter(p => {
-    if (!p.url || seen.has(p.url)) return false;
-    seen.add(p.url);
-    return true;
-  });
-}
-
-function parseProductDetails(html) {
-  // product name
-  let name = '';
-  const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-  if (h1) name = cleanText(h1[1]);
-  if (!name) {
-    const og = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i);
-    if (og) name = cleanText(og[1]);
-  }
-  if (!name) {
-    const t = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    if (t) name = cleanText(t[1]).replace(/\s*\|\s*Compel.*$/i, '').trim();
-  }
-
-  const text = cleanText(html);
-
-  // product code: "Ürün Kodu"
-  const codeRe = new RegExp('\\u00dcr\\u00fcn\\s*Kodu\\s*([A-Za-z0-9._-]+)', 'i');
-  const codeM = text.match(codeRe);
-  const productCode = codeM ? codeM[1] : '';
-
-  // EAN
-  let ean = '';
-  const e1 = text.match(/ean13\s*([0-9]{8,14})/i);
-  if (e1) ean = e1[1];
-  const e2 = !ean ? text.match(/EAN\s*[:\-]?\s*([0-9]{8,14})/i) : null;
-  if (e2) ean = e2[1];
-
-  // stock
-  let stock = '';
-  const qty = text.match(/Stok\s*Durumu\s*:\s*([0-9]+)\s*Stokta\s*Var/i);
-  if (qty) {
-    stock = `${qty[1]} Stokta Var`;
-  } else if (/Stokta\s*Yok/i.test(text) || /T\u00fckendi/i.test(text) || /stok.*yok/i.test(text)) {
-    stock = 'Stokta Yok';
-  } else if (/Stokta\s*Var/i.test(text)) {
-    stock = 'Stokta Var';
-  }
-
-  return { name, productCode, ean, stock };
-}
-
-function cleanText(input) {
-  if (!input) return '';
-  let s = String(input);
-  // remove scripts/styles
-  s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ');
-  s = s.replace(/<style[\s\S]*?<\/style>/gi, ' ');
-  // tags -> spaces
-  s = s.replace(/<[^>]+>/g, ' ');
-
-  // decode minimal entities
-  s = s
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>');
-
-  // numeric entities
-  s = s.replace(/&#(\d+);/g, (_, n) => {
-    const code = parseInt(n, 10);
-    if (!Number.isFinite(code)) return '';
     try {
-      return String.fromCharCode(code);
-    } catch {
-      return '';
+      setStatus('Tarama başladı');
+      logLine('Secilen marka sayisi: ' + sel.length);
+
+      for (const b of sel) {
+        logLine('---');
+        logLine('Marka: ' + b.name);
+
+        const pages = Math.max(1, Math.ceil((b.productCount || 0) / 20));
+        const productRefs = [];
+
+        for (let page = 1; page <= pages; page++) {
+          setStatus(b.name + ' sayfa ' + page + '/' + pages);
+          const data = await apiJson('/api/brand-products?brandId=' + encodeURIComponent(b.id) + '&page=' + page);
+          const products = (data.products || []).map(p => ({
+            brand: b.name,
+            url: p.url,
+            listingTitle: p.listingTitle || '',
+            listingStock: p.stock || ''
+          }));
+          for (const p of products) productRefs.push(p);
+          logLine('Sayfa ' + page + ': ' + products.length + ' urun');
+        }
+
+        // dedupe
+        const byUrl = new Map();
+        for (const p of productRefs) if (p.url && !byUrl.has(p.url)) byUrl.set(p.url, p);
+        const uniq = Array.from(byUrl.values());
+        logLine('Toplam urun (tekil): ' + uniq.length);
+
+        let done = 0;
+        await pool(uniq, 6, async (p) => {
+          const data = await apiJson('/api/product-details?url=' + encodeURIComponent(p.url));
+          const row = {
+            brand: p.brand,
+            name: data.name || '',
+            productCode: data.productCode || p.listingTitle || '',
+            ean: data.ean || '',
+            stock: data.stock || p.listingStock || '',
+            url: p.url,
+          };
+          results.push(row);
+          addResultRow(row);
+          done++;
+          if (done % 10 === 0) setStatus(b.name + ': ' + done + '/' + uniq.length);
+        });
+
+        logLine('Bitti: ' + b.name + ' (' + uniq.length + ')');
+      }
+
+      setStatus('Tarama bitti. Sonuc: ' + results.length);
+      $('#btnExport').disabled = results.length === 0;
+    } catch (e) {
+      console.error(e);
+      setStatus('Hata');
+      alert(String(e && e.message ? e.message : e));
+    } finally {
+      scanning = false;
+      setButtonsEnabled(true);
+      updateSelectedCount();
     }
-  });
-  s = s.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => {
-    const code = parseInt(h, 16);
-    if (!Number.isFinite(code)) return '';
-    try {
-      return String.fromCharCode(code);
-    } catch {
-      return '';
-    }
+  }
+
+  function exportTxt() {
+    if (!results.length) return;
+    const header = ['Marka', 'UrunAdi', 'UrunKodu', 'EAN', 'Stok', 'URL'].join('\t');
+    const lines = results.map(r => [
+      r.brand || '',
+      (r.name || '').replace(/\s+/g, ' ').trim(),
+      r.productCode || '',
+      r.ean || '',
+      r.stock || '',
+      r.url || ''
+    ].join('\t'));
+    const content = [header, ...lines].join('\n');
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'compel_export.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // UI
+  $('#btnAll').addEventListener('click', () => {
+    document.querySelectorAll('.brandCheck').forEach(x => (x.checked = true));
+    updateSelectedCount();
   });
 
-  // normalize whitespace
-  s = s.replace(/\s+/g, ' ').trim();
-  return s;
-}
+  $('#btnClear').addEventListener('click', () => {
+    document.querySelectorAll('.brandCheck').forEach(x => (x.checked = false));
+    updateSelectedCount();
+  });
 
-const BRANDS = [
-  { id: 1, name: 'Ableton', slug: 'ableton', productCount: 10 },
-  { id: 48, name: 'Allen & Heath', slug: 'allen-heath', productCount: 8 },
-  { id: 4, name: 'Arturia', slug: 'arturia', productCount: 61 },
-  { id: 6, name: 'Avalon', slug: 'avalon', productCount: 4 },
-  { id: 7, name: 'Avid', slug: 'avid', productCount: 16 },
-  { id: 49, name: 'Compel', slug: 'compel', productCount: 3 },
-  { id: 41, name: 'Cranborne Audio', slug: 'cranborne-audio', productCount: 9 },
-  { id: 9, name: 'Crane Song', slug: 'crane-song', productCount: 6 },
-  { id: 10, name: 'Denon DJ', slug: 'denon-dj', productCount: 10 },
-  { id: 50, name: 'Fender Studio', slug: 'fender-studio', productCount: 8 },
-  { id: 11, name: 'Genelec', slug: 'genelec', productCount: 25 },
-  { id: 12, name: 'HeadRush', slug: 'headrush', productCount: 8 },
-  { id: 13, name: 'Hosa', slug: 'hosa', productCount: 296 },
-  { id: 16, name: 'M-Audio', slug: 'm-audio', productCount: 50 },
-  { id: 44, name: 'M-Game', slug: 'm-game', productCount: 2 },
-  { id: 17, name: 'Marantz Professional', slug: 'marantz-professional', productCount: 9 },
-  { id: 20, name: 'Numark', slug: 'numark', productCount: 33 },
-  { id: 21, name: 'PreSonus', slug: 'presonus', productCount: 97 },
-  { id: 23, name: 'Rane', slug: 'rane', productCount: 10 },
-  { id: 25, name: 'Rupert Neve Designs', slug: 'rupert-neve-designs', productCount: 8 },
-  { id: 24, name: 'R\u00d8DE', slug: 'rode', productCount: 245 },
-  { id: 45, name: 'R\u00d8DE X', slug: 'rode-x', productCount: 3 },
-  { id: 47, name: 'Sheeran Loopers', slug: 'sheeran-loopers', productCount: 2 },
-  { id: 26, name: 'Sibelius', slug: 'sibelius', productCount: 6 },
-  { id: 28, name: 'Sonarworks', slug: 'sonarworks', productCount: 12 },
-  { id: 43, name: 'SoundSwitch', slug: 'soundswitch', productCount: 1 },
-  { id: 42, name: 'Stanton', slug: 'stanton', productCount: 3 },
-  { id: 36, name: 'Universal Audio', slug: 'universal-audio', productCount: 73 },
-  { id: 38, name: 'Warm Audio', slug: 'warm-audio', productCount: 79 },
-];
+  $('#btnScan').addEventListener('click', startScan);
+  $('#btnExport').addEventListener('click', exportTxt);
+
+  $('#brandFilter').addEventListener('input', (e) => {
+    const q = (e.target.value || '').toLowerCase();
+    const filtered = !q
+      ? brands
+      : brands.filter(b => (b.name || '').toLowerCase().includes(q));
+    renderBrands(filtered);
+  });
+
+  loadBrands().catch(err => {
+    console.error(err);
+    setStatus('Hata: markalar yuklenemedi');
+    logLine('API_BASE dogru mu? ' + API_BASE);
+    logLine(String(err));
+  });
+</script>
+</body>
+</html>
