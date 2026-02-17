@@ -1,112 +1,345 @@
-<!doctype html><meta charset="utf-8">
-<title>Compel Stok Tarayıcı</title>
-<style>
-  body{margin:0;font:13px system-ui;height:100vh;display:flex;flex-direction:column}
-  #top{padding:8px;display:flex;gap:8px;align-items:center}
-  #main{flex:1;min-height:0;display:flex;gap:8px;padding:8px}
-  #brands{flex:0 0 360px;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start}
-  label{display:flex;gap:6px;align-items:center;white-space:nowrap}
-  #out{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-  textarea{flex:1;min-height:0;width:100%;resize:none;font:12px ui-monospace,monospace}
-  progress{width:160px}
-  button{cursor:pointer}
-</style>
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Compel Robot</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#0b0d10;color:#e9eef5}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,button{padding:10px 12px;border-radius:10px;border:1px solid #2a3140;background:#121722;color:#e9eef5}
+    input{min-width:320px;flex:1}
+    button{cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:16px;margin-top:14px}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+    .card{border:1px solid #1f2633;background:#0f141d;border-radius:14px;padding:12px}
+    .muted{color:#9aa7bd;font-size:13px}
+    .brands{max-height:60vh;overflow:auto;margin-top:10px;padding-right:6px}
+    .brand{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px;border-bottom:1px solid #1a2130}
+    .brand label{display:flex;gap:8px;align-items:center;cursor:pointer}
+    .pill{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid #2a3140;color:#cfe0ff}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #1a2130;vertical-align:top}
+    th{position:sticky;top:0;background:#0f141d}
+    a{color:#9fd3ff;text-decoration:none}
+    .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+    .status{margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <input id="catUrl" placeholder="Kategori URL (örn: https://compel.com.tr/10-dj-urunleri)" />
+      <input id="maxPages" type="number" min="0" value="0" title="0 = tüm sayfalar" style="max-width:170px" />
+      <button id="btnRun">Getir</button>
+      <button id="btnStop" disabled>Dur</button>
+    </div>
+    <div class="muted">Not: Max sayfa = 0 ise kategorideki tüm sayfaları çeker.</div>
 
-<div id="top">
-  <button id="scan">Tara</button>
-  <button id="copy">Kopyala</button>
-  <button id="dl">.txt indir</button>
-  <progress id="pg" max="100" value="0"></progress><span id="pct">0%</span>
-  <span id="stat"></span>
-</div>
+    <div class="grid">
+      <aside class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div>
+            <div style="font-weight:700">Markalar</div>
+            <div class="muted" id="brandMeta">0 marka</div>
+          </div>
+          <div class="btnrow">
+            <button id="btnSelectAll" disabled>Tümünü Seç</button>
+            <button id="btnClearAll">Komple Temizle</button>
+          </div>
+        </div>
 
-<div id="main">
-  <div id="brands"></div>
-  <div id="out"><textarea id="ta" readonly></textarea></div>
-</div>
+        <div class="brands" id="brandList"></div>
+      </aside>
+
+      <main class="card">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div>
+            <div style="font-weight:700">Ürünler</div>
+            <div class="muted" id="prodMeta">0 ürün</div>
+          </div>
+          <div class="status muted" id="status">Hazır.</div>
+        </div>
+
+        <div style="margin-top:10px;overflow:auto;max-height:70vh;border-radius:12px;border:1px solid #1a2130">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th style="min-width:150px">Marka</th>
+                <th style="min-width:340px">Ürün</th>
+                <th style="min-width:110px">Kod</th>
+                <th style="min-width:140px">Stok</th>
+                <th style="min-width:80px">Link</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
 
 <script>
-const WORKER="https://robot-workstation.tvkapora.workers.dev"; // <-- kendi worker domainin
+(() => {
+  const WORKER = "https://robot-workstation.tvkapora.workers.dev";
 
-const BRANDS=[
-["Ableton","https://compel.com.tr/brand/1-ableton"],
-["Allen & Heath","https://compel.com.tr/brand/48-allen-heath"],
-["Arturia","https://compel.com.tr/brand/4-arturia"],
-["Avalon","https://compel.com.tr/brand/6-avalon"],
-["Avid","https://compel.com.tr/brand/7-avid"],
-["Compel","https://compel.com.tr/brand/49-compel"],
-["Cranborne Audio","https://compel.com.tr/brand/41-cranborne-audio"],
-["Crane Song","https://compel.com.tr/brand/9-crane-song"],
-["Denon DJ","https://compel.com.tr/brand/10-denon-dj"],
-["Fender Studio","https://compel.com.tr/brand/50-fender-studio"],
-["Genelec","https://compel.com.tr/brand/11-genelec"],
-["HeadRush","https://compel.com.tr/brand/12-headrush"],
-["Hosa","https://compel.com.tr/brand/13-hosa"],
-["M-Audio","https://compel.com.tr/brand/16-m-audio"],
-["M-Game","https://compel.com.tr/brand/44-m-game"],
-["Marantz Professional","https://compel.com.tr/brand/17-marantz-professional"],
-["Numark","https://compel.com.tr/brand/20-numark"],
-["PreSonus","https://compel.com.tr/brand/21-presonus"],
-["Rane","https://compel.com.tr/brand/23-rane"],
-["Rupert Neve Designs","https://compel.com.tr/brand/25-rupert-neve-designs"],
-["RØDE","https://compel.com.tr/brand/24-rode"],
-["RØDE X","https://compel.com.tr/brand/45-rode-x"],
-["Sheeran Loopers","https://compel.com.tr/brand/47-sheeran-loopers"],
-["Sibelius","https://compel.com.tr/brand/26-sibelius"],
-["Sonarworks","https://compel.com.tr/brand/28-sonarworks"],
-["SoundSwitch","https://compel.com.tr/brand/43-soundswitch"],
-["Stanton","https://compel.com.tr/brand/42-stanton"],
-["Universal Audio","https://compel.com.tr/brand/36-universal-audio"],
-["Warm Audio","https://compel.com.tr/brand/38-warm-audio"],
-];
+  const $ = (id) => document.getElementById(id);
 
-const $=x=>document.querySelector(x);
-const box=$("#brands"); box.innerHTML=BRANDS.map(([n,u],i)=>
-`<label><input type=checkbox data-u="${u}"> ${n}</label>`).join("");
+  const elCat = $("catUrl");
+  const elMax = $("maxPages");
+  const btnRun = $("btnRun");
+  const btnStop = $("btnStop");
+  const btnSelectAll = $("btnSelectAll");
+  const btnClearAll = $("btnClearAll");
+  const brandList = $("brandList");
+  const brandMeta = $("brandMeta");
+  const prodMeta = $("prodMeta");
+  const statusEl = $("status");
+  const rowsEl = $("rows");
 
-const api = async (path, params) =>
-  (await fetch(`${WORKER}${path}?` + new URLSearchParams(params))).json();
+  const state = {
+    ctrl: null,
+    products: [],
+    brandCounts: new Map(),
+    selectedBrands: new Set(), // boşsa => filtre yok (hepsini göster)
+    rowByUrl: new Map(),
+  };
 
-function setProg(done,total){
-  const pct = total?Math.floor(done*100/total):0;
-  $("#pg").value=pct; $("#pct").textContent=pct+"%";
-}
+  const setStatus = (s) => statusEl.textContent = s;
 
-$("#scan").onclick=async()=>{
-  $("#ta").value=""; $("#stat").textContent="Hazırlanıyor...";
-  const sel=[...document.querySelectorAll("#brands input:checked")].map(x=>x.dataset.u);
-  if(!sel.length){ $("#stat").textContent="Marka seç."; return; }
+  const enc = encodeURIComponent;
 
-  // 1) toplam ürün sayısı
-  let meta=[];
-  for (const b of sel){
-    const x=await api("/list",{b,p:1});
-    meta.push({b,count:x.count,pages:x.pages});
+  function resetAll() {
+    if (state.ctrl) state.ctrl.abort();
+    state.ctrl = null;
+    state.products = [];
+    state.brandCounts = new Map();
+    state.selectedBrands = new Set();
+    state.rowByUrl = new Map();
+    brandList.innerHTML = "";
+    rowsEl.innerHTML = "";
+    brandMeta.textContent = "0 marka";
+    prodMeta.textContent = "0 ürün";
+    setStatus("Hazır.");
+    btnStop.disabled = true;
+    btnSelectAll.disabled = true;
+    btnRun.disabled = false;
   }
-  const total=meta.reduce((s,x)=>s+x.count,0);
-  let done=0; setProg(0,total);
-  $("#ta").value="Ürün Adı\tÜrün Kodu\tStok\n";
 
-  // 2) tara
-  for (const m of meta){
-    for (let p=1;p<=m.pages;p++){
-      const L=await api("/list",{b:m.b,p});
-      for (const url of L.links){
-        const d=await api("/prod",{u:url});
-        $("#ta").value += `${d.name}\t${d.code}\t${d.stock}\n`;
-        done++; setProg(done,total);
-        $("#stat").textContent=`${done}/${total}`;
-      }
+  function shouldShowBrand(brand) {
+    // seçili set boşsa => filtre yok => hepsi görünür
+    if (state.selectedBrands.size === 0) return true;
+    return state.selectedBrands.has(brand);
+  }
+
+  function applyFilter() {
+    for (const p of state.products) {
+      const tr = state.rowByUrl.get(p.url);
+      if (!tr) continue;
+      tr.style.display = shouldShowBrand(p.brand) ? "" : "none";
     }
   }
-  $("#stat").textContent="Bitti";
-};
 
-$("#copy").onclick=()=>navigator.clipboard.writeText($("#ta").value);
-$("#dl").onclick=()=>{
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([$("#ta").value],{type:"text/plain"}));
-  a.download="compel-stok.txt"; a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-};
+  function renderBrands() {
+    const items = [...state.brandCounts.entries()]
+      .map(([brand, count]) => ({ brand, count }))
+      .sort((a,b) => (b.count - a.count) || a.brand.localeCompare(b.brand, "tr"));
+
+    brandMeta.textContent = `${items.length} marka`;
+
+    brandList.innerHTML = items.map(({brand,count}) => {
+      const checked = state.selectedBrands.size === 0 ? true : state.selectedBrands.has(brand);
+      return `
+        <div class="brand">
+          <label title="${brand}">
+            <input type="checkbox" data-brand="${brand}" ${checked ? "checked" : ""}/>
+            <span>${brand}</span>
+          </label>
+          <span class="pill">${count}</span>
+        </div>
+      `;
+    }).join("");
+
+    // checkbox events
+    brandList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener("change", () => {
+        const brand = cb.getAttribute("data-brand");
+        // set boşken "hepsi seçili" davranışı var. İlk değişiklikte set'i doldurup devam ediyoruz.
+        if (state.selectedBrands.size === 0) {
+          // önce hepsini seçili yap
+          state.selectedBrands = new Set(items.map(x => x.brand));
+        }
+        if (cb.checked) state.selectedBrands.add(brand);
+        else state.selectedBrands.delete(brand);
+
+        // hepsi tekrar seçiliyse filtreyi boş set'e çevir (hepsi)
+        if (state.selectedBrands.size === items.length) state.selectedBrands = new Set();
+
+        applyFilter();
+      });
+    });
+
+    btnSelectAll.disabled = items.length === 0;
+  }
+
+  function addOrUpdateBrandCount(brand) {
+    const b = brand || "Bilinmiyor";
+    state.brandCounts.set(b, (state.brandCounts.get(b) || 0) + 1);
+  }
+
+  function addRow(p) {
+    const tr = document.createElement("tr");
+    tr.dataset.brand = p.brand || "Bilinmiyor";
+    tr.innerHTML = `
+      <td>${escapeHtml(p.brand || "Bilinmiyor")}</td>
+      <td>${escapeHtml(p.name || "")}</td>
+      <td>${escapeHtml(p.code || "")}</td>
+      <td>${escapeHtml(p.stock || "")}</td>
+      <td><a href="${p.url}" target="_blank" rel="noopener">Aç</a></td>
+    `;
+    rowsEl.appendChild(tr);
+    state.rowByUrl.set(p.url, tr);
+    tr.style.display = shouldShowBrand(tr.dataset.brand) ? "" : "none";
+  }
+
+  function escapeHtml(s) {
+    return (s ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+
+  async function fetchJSON(url, signal) {
+    const r = await fetch(url, { signal });
+    if (!r.ok) throw new Error("fetch_failed");
+    return await r.json();
+  }
+
+  async function fetchLinks(categoryUrl, maxPages, signal) {
+    const first = await fetchJSON(`${WORKER}/list?b=${enc(categoryUrl)}&p=1`, signal);
+    const totalPages = first.pages || 1;
+    const wantPages = (maxPages && maxPages > 0) ? Math.min(maxPages, totalPages) : totalPages;
+
+    const all = new Set(first.links || []);
+    for (let page = 2; page <= wantPages; page++) {
+      const j = await fetchJSON(`${WORKER}/list?b=${enc(categoryUrl)}&p=${page}`, signal);
+      (j.links || []).forEach(x => all.add(x));
+      setStatus(`Liste çekiliyor… Sayfa ${page}/${wantPages} (link: ${all.size})`);
+    }
+
+    return [...all];
+  }
+
+  async function runQueue(items, workerFn, concurrency, signal) {
+    let i = 0, done = 0;
+    const results = [];
+    const runners = new Array(concurrency).fill(0).map(async () => {
+      while (i < items.length) {
+        const idx = i++;
+        if (signal.aborted) break;
+        try {
+          const res = await workerFn(items[idx], idx);
+          results[idx] = res;
+        } catch (e) {
+          results[idx] = null;
+        } finally {
+          done++;
+          setStatus(`Ürün çekiliyor… ${done}/${items.length}`);
+        }
+      }
+    });
+    await Promise.all(runners);
+    return results;
+  }
+
+  async function start() {
+    const categoryUrl = (elCat.value || "").trim();
+    if (!categoryUrl.startsWith("https://compel.com.tr/")) {
+      alert("Kategori URL https://compel.com.tr/ ile başlamalı");
+      return;
+    }
+
+    btnRun.disabled = true;
+    btnStop.disabled = false;
+    btnSelectAll.disabled = true;
+
+    state.ctrl = new AbortController();
+    const signal = state.ctrl.signal;
+
+    // temizle ama inputlar kalsın
+    rowsEl.innerHTML = "";
+    brandList.innerHTML = "";
+    state.products = [];
+    state.brandCounts = new Map();
+    state.selectedBrands = new Set();
+    state.rowByUrl = new Map();
+    prodMeta.textContent = "0 ürün";
+    brandMeta.textContent = "0 marka";
+
+    try {
+      const maxPages = parseInt(elMax.value || "0", 10) || 0;
+
+      setStatus("Linkler alınıyor…");
+      const links = await fetchLinks(categoryUrl, maxPages, signal);
+      setStatus(`Toplam ${links.length} ürün linki bulundu. Ürünler çekiliyor…`);
+
+      const prodFn = async (url) => {
+        const j = await fetchJSON(`${WORKER}/prod?u=${enc(url)}`, signal);
+        const p = {
+          url: j.url || url,
+          name: j.name || "",
+          code: j.code || "",
+          brand: (j.brand || "").trim() || "Bilinmiyor",
+          stock: j.stock || "",
+        };
+        return p;
+      };
+
+      const out = await runQueue(links, prodFn, 8, signal);
+
+      for (const p of out.filter(Boolean)) {
+        state.products.push(p);
+        addOrUpdateBrandCount(p.brand);
+        addRow(p);
+      }
+
+      prodMeta.textContent = `${state.products.length} ürün`;
+      renderBrands();
+      applyFilter();
+      setStatus("Bitti ✅");
+
+    } catch (e) {
+      if (e?.name === "AbortError") setStatus("Durduruldu.");
+      else setStatus("Hata oldu (fetch_failed).");
+    } finally {
+      btnStop.disabled = true;
+      btnRun.disabled = false;
+      state.ctrl = null;
+    }
+  }
+
+  btnRun.addEventListener("click", start);
+
+  btnStop.addEventListener("click", () => {
+    if (state.ctrl) state.ctrl.abort();
+  });
+
+  btnSelectAll.addEventListener("click", () => {
+    // filtreyi boş set'e çek => hepsi görünür ve hepsi seçili görünür
+    state.selectedBrands = new Set();
+    renderBrands();
+    applyFilter();
+  });
+
+  btnClearAll.addEventListener("click", resetAll);
+
+  // default
+  elCat.value = "https://compel.com.tr/10-dj-urunleri";
+})();
 </script>
+</body>
+</html>
