@@ -3,322 +3,43 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Compel Robot</title>
+  <title>Compel Tarama</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#fff;color:#111}
-    .wrap{max-width:1200px;margin:0 auto;padding:16px}
-    .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    input,button{padding:10px 12px;border-radius:10px;border:1px solid #d6dbe6;background:#fff;color:#111}
-    input{min-width:320px;flex:1}
-    button{cursor:pointer}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .muted{color:#6b7280;font-size:13px;margin-top:8px}
-    .card{border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:12px;margin-top:14px}
-    .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
-    .title{font-weight:700}
-    .brandBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .brandList{margin-top:10px;border-top:1px solid #f0f2f6}
-    .brandItem{
-      display:flex;justify-content:space-between;align-items:center;
-      gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f6;
+    :root { font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial; }
+    body { margin: 0; background: #0b0b0f; color: #e8e8ee; }
+    .hdr { display:flex; align-items:center; justify-content:space-between; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.08); position: sticky; top:0; background:#0b0b0f; z-index: 5; }
+    .title { font-weight: 700; letter-spacing:.2px; }
+    .status { font-size: 12px; opacity:.85; }
+    .wrap { display:flex; gap: 12px; padding: 12px; }
+    .side { width: 360px; min-width: 280px; max-width: 420px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 12px; background: rgba(255,255,255,.03); height: calc(100vh - 70px); overflow:auto; }
+    .main { flex: 1; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 12px; background: rgba(255,255,255,.03); overflow:auto; height: calc(100vh - 70px); }
+    .boxTitle { font-weight: 700; margin-bottom: 10px; }
+    .row { display:flex; flex-wrap: wrap; gap: 8px; align-items:center; margin-bottom: 10px; }
+    .btn { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #e8e8ee; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
+    .btn:hover { background: rgba(255,255,255,.12); }
+    .btn.primary { background: #2b6cff; border-color: #2b6cff; }
+    .btn.primary:hover { filter: brightness(1.05); }
+    .muted { font-size: 12px; opacity: .8; }
+    .brandList { display:flex; flex-direction:column; gap: 8px; }
+    .brandRow { display:flex; align-items:center; gap: 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.18); cursor: pointer; }
+    .brandRow:hover { background: rgba(255,255,255,.06); }
+    .brandText { font-size: 14px; line-height: 1.2; }
+    .tbl { width:100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th, .tbl td { border-bottom: 1px solid rgba(255,255,255,.08); padding: 10px 8px; vertical-align: top; }
+    .tbl th { text-align: left; font-size: 12px; opacity:.9; position: sticky; top: 0; background: rgba(20,20,28,.9); backdrop-filter: blur(6px); }
+    a { color: #9bc1ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    @media (max-width: 980px) {
+      .wrap { flex-direction: column; }
+      .side { width: auto; height: auto; max-height: 45vh; }
+      .main { height: auto; max-height: 55vh; }
     }
-    .brandLeft{display:flex;align-items:center;gap:10px;min-width:0}
-    .brandName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px}
-    .count{color:#374151;font-size:13px;white-space:nowrap}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #eef2f7;vertical-align:top;text-align:left}
-    th{background:#fafafa;position:sticky;top:0}
-    a{color:#2563eb;text-decoration:none}
-    .tableWrap{margin-top:10px;overflow:auto;max-height:70vh;border-radius:12px;border:1px solid #eef2f7}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="top">
-      <input id="catUrl" placeholder="Kategori URL (örn: https://compel.com.tr/10-dj-urunleri)" />
-      <input id="maxPages" type="number" min="0" value="0" title="0 = tüm sayfalar" style="max-width:170px" />
-      <button id="btnRun">Getir</button>
-      <button id="btnStop" disabled>Dur</button>
-    </div>
-    <div class="muted">Max sayfa = 0 ise kategorideki tüm sayfaları çeker.</div>
+  <div id="app"></div>
 
-    <section class="card">
-      <div class="cardHead">
-        <div>
-          <div class="title">Markalar</div>
-          <div class="muted" id="brandMeta">0/0</div>
-        </div>
-        <div class="brandBar">
-          <button id="btnAll" disabled>Hepsi</button>
-          <button id="btnClear" disabled>Temizle</button>
-          <span class="muted" id="status">Hazır.</span>
-        </div>
-      </div>
-
-      <div class="brandList" id="brandList"></div>
-    </section>
-
-    <section class="card">
-      <div class="cardHead">
-        <div>
-          <div class="title">Ürünler</div>
-          <div class="muted" id="prodMeta">0 ürün</div>
-        </div>
-      </div>
-
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="min-width:160px">Marka</th>
-              <th style="min-width:360px">Ürün</th>
-              <th style="min-width:120px">Kod</th>
-              <th style="min-width:140px">Stok</th>
-              <th style="min-width:80px">Link</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-<script>
-(() => {
-  const WORKER = "https://robot-workstation.tvkapora.workers.dev";
-  const enc = encodeURIComponent;
-  const $ = (id) => document.getElementById(id);
-
-  const elCat = $("catUrl");
-  const elMax = $("maxPages");
-  const btnRun = $("btnRun");
-  const btnStop = $("btnStop");
-  const btnAll = $("btnAll");
-  const btnClear = $("btnClear");
-  const brandListEl = $("brandList");
-  const brandMetaEl = $("brandMeta");
-  const prodMetaEl = $("prodMeta");
-  const statusEl = $("status");
-  const rowsEl = $("rows");
-
-  const state = {
-    ctrl: null,
-    products: [],
-    brands: [],              // [{name,count,pages}]
-    selected: new Set(),     // seçili marka isimleri
-    rowByUrl: new Map()
-  };
-
-  const setStatus = (s) => statusEl.textContent = s;
-
-  function escapeHtml(s) {
-    return (s ?? "").toString()
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#39;");
-  }
-
-  function updateBrandMeta() {
-    const total = state.brands.length;
-    const sel = state.selected.size;
-    brandMetaEl.textContent = `${sel}/${total}`;
-  }
-
-  function applyFilter() {
-    for (const p of state.products) {
-      const tr = state.rowByUrl.get(p.url);
-      if (!tr) continue;
-      tr.style.display = state.selected.has(p.brand) ? "" : "none";
-    }
-    updateBrandMeta();
-  }
-
-  function renderBrands() {
-    // A-Z
-    const items = [...state.brands].sort((a,b) => a.name.localeCompare(b.name, "tr"));
-
-    brandListEl.innerHTML = items.map(({name,count,pages}) => {
-      const checked = state.selected.has(name);
-      return `
-        <div class="brandItem">
-          <label class="brandLeft" title="${escapeHtml(name)}">
-            <input type="checkbox" data-brand="${escapeHtml(name)}" ${checked ? "checked" : ""} />
-            <span class="brandName">${escapeHtml(name)}</span>
-          </label>
-          <span class="count">${count} Ürün (~${pages} Sayfa)</span>
-        </div>
-      `;
-    }).join("");
-
-    brandListEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener("change", () => {
-        const brand = cb.getAttribute("data-brand");
-        if (cb.checked) state.selected.add(brand);
-        else state.selected.delete(brand);
-        applyFilter();
-      });
-    });
-
-    btnAll.disabled = items.length === 0;
-    btnClear.disabled = items.length === 0;
-    updateBrandMeta();
-  }
-
-  function addRow(p) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHtml(p.brand)}</td>
-      <td>${escapeHtml(p.name)}</td>
-      <td>${escapeHtml(p.code)}</td>
-      <td>${escapeHtml(p.stock)}</td>
-      <td><a href="${p.url}" target="_blank" rel="noopener">Aç</a></td>
-    `;
-    rowsEl.appendChild(tr);
-    state.rowByUrl.set(p.url, tr);
-  }
-
-  async function fetchJSON(url, signal) {
-    const r = await fetch(url, { signal });
-    if (!r.ok) throw new Error("fetch_failed");
-    return await r.json();
-  }
-
-  async function fetchLinks(categoryUrl, maxPages, signal) {
-    const first = await fetchJSON(`${WORKER}/list?b=${enc(categoryUrl)}&p=1`, signal);
-    const totalPages = first.pages || 1;
-    const wantPages = (maxPages && maxPages > 0) ? Math.min(maxPages, totalPages) : totalPages;
-
-    const all = new Set(first.links || []);
-    for (let page = 2; page <= wantPages; page++) {
-      const j = await fetchJSON(`${WORKER}/list?b=${enc(categoryUrl)}&p=${page}`, signal);
-      (j.links || []).forEach(x => all.add(x));
-      setStatus(`Liste: ${page}/${wantPages} (link: ${all.size})`);
-    }
-    return [...all];
-  }
-
-  async function runQueue(items, workerFn, concurrency, signal) {
-    let i = 0, done = 0;
-    const results = [];
-    const runners = new Array(concurrency).fill(0).map(async () => {
-      while (i < items.length) {
-        const idx = i++;
-        if (signal.aborted) break;
-        try {
-          results[idx] = await workerFn(items[idx], idx);
-        } catch {
-          results[idx] = null;
-        } finally {
-          done++;
-          setStatus(`Ürünler: ${done}/${items.length}`);
-        }
-      }
-    });
-    await Promise.all(runners);
-    return results;
-  }
-
-  async function start() {
-    const categoryUrl = (elCat.value || "").trim();
-    if (!categoryUrl.startsWith("https://compel.com.tr/")) {
-      alert("Kategori URL https://compel.com.tr/ ile başlamalı");
-      return;
-    }
-
-    btnRun.disabled = true;
-    btnStop.disabled = false;
-    btnAll.disabled = true;
-    btnClear.disabled = true;
-
-    state.ctrl = new AbortController();
-    const signal = state.ctrl.signal;
-
-    // reset
-    rowsEl.innerHTML = "";
-    brandListEl.innerHTML = "";
-    state.products = [];
-    state.brands = [];
-    state.selected.clear();
-    state.rowByUrl.clear();
-    prodMetaEl.textContent = "0 ürün";
-    brandMetaEl.textContent = "0/0";
-
-    try {
-      const maxPages = parseInt(elMax.value || "0", 10) || 0;
-
-      setStatus("Linkler alınıyor…");
-      const links = await fetchLinks(categoryUrl, maxPages, signal);
-      setStatus(`Toplam ${links.length} link. Ürünler çekiliyor…`);
-
-      const prodFn = async (url) => {
-        const j = await fetchJSON(`${WORKER}/prod?u=${enc(url)}`, signal);
-        return {
-          url: j.url || url,
-          name: j.name || "",
-          code: j.code || "",
-          brand: (j.brand || "").trim() || "Bilinmiyor",
-          stock: j.stock || "",
-        };
-      };
-
-      const out = await runQueue(links, prodFn, 8, signal);
-
-      const counts = new Map();
-
-      for (const p of out.filter(Boolean)) {
-        state.products.push(p);
-        counts.set(p.brand, (counts.get(p.brand) || 0) + 1);
-        addRow(p);
-      }
-
-      // marka listesi + sayfa hesabı
-      state.brands = [...counts.entries()].map(([name, count]) => ({
-        name,
-        count,
-        pages: Math.max(1, Math.ceil(count / 20)),
-      }));
-
-      // varsayılan: hepsi seçili (markalar hep görünür, ürünler filtrelenir)
-      state.selected = new Set(state.brands.map(b => b.name));
-
-      prodMetaEl.textContent = `${state.products.length} ürün`;
-      renderBrands();
-      applyFilter();
-      setStatus("Bitti ✅");
-    } catch (e) {
-      if (e?.name === "AbortError") setStatus("Durduruldu.");
-      else setStatus("Hata oldu (fetch_failed).");
-    } finally {
-      btnStop.disabled = true;
-      btnRun.disabled = false;
-      state.ctrl = null;
-    }
-  }
-
-  btnRun.addEventListener("click", start);
-
-  btnStop.addEventListener("click", () => {
-    if (state.ctrl) state.ctrl.abort();
-  });
-
-  btnAll.addEventListener("click", () => {
-    state.selected = new Set(state.brands.map(b => b.name));
-    renderBrands();     // checkboxlar güncellensin (markalar hep görünür)
-    applyFilter();
-  });
-
-  btnClear.addEventListener("click", () => {
-    state.selected.clear();
-    renderBrands();     // checkboxlar güncellensin
-    applyFilter();
-  });
-
-  // default
-  elCat.value = "https://compel.com.tr/10-dj-urunleri";
-  setStatus("Hazır.");
-})();
-</script>
+  <!-- BURASI: kendi worker linkin -->
+  <script src="https://robot-workstation.tvkapora.workers.dev"></script>
 </body>
 </html>
