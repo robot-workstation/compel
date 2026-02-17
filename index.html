@@ -29,7 +29,6 @@
     label.brand input { width:18px; height:18px; }
     .meta { display:flex; flex-direction:column; line-height:1.15; }
     .meta .name { font-weight:800; }
-    .meta .sub { font-size:12px; color:#9aa7bd; margin-top:2px; }
     .status { font-size:12px; color:#9aa7bd; margin:6px 0 10px 0; white-space:pre-wrap; }
     table { width:100%; border-collapse:collapse; }
     th, td { border-bottom:1px solid #1f2430; padding:10px 8px; text-align:left; vertical-align:top; }
@@ -52,7 +51,7 @@
 <body>
 <header>
   <strong>Compel Marka Tarayıcı</strong>
-  <span class="pill">Stok + EAN (fiyat yok)</span>
+  <span class="pill">Stok + EAN + Ürün Kodu</span>
   <span class="pill" id="apiPill">API: yükleniyor...</span>
 </header>
 
@@ -82,8 +81,10 @@
     <table>
       <thead>
         <tr>
+          <th>Liste Sıra No</th>
           <th>Marka</th>
           <th>Ürün</th>
+          <th>Ürün Kodu</th>
           <th>Stok</th>
           <th>EAN</th>
           <th>Link</th>
@@ -92,12 +93,11 @@
       <tbody id="rows"></tbody>
     </table>
 
-    <p class="small">Not: EAN çoğu üründe URL içinden alınır (13 hane). Bazılarında boş kalabilir.</p>
+    <p class="small">Not: Ürün kodu her listede olmayabilir; bulunamazsa boş kalır.</p>
   </section>
 </main>
 
 <script>
-  // ✅ Worker API adresin (hazır koydum)
   const API_BASE = "https://robot-workstation.tvkapora.workers.dev";
 
   const els = {
@@ -136,6 +136,8 @@
   function renderBrands(){
     els.list.innerHTML = '';
     const sorted = [...brands].sort((a,b)=> a.name.localeCompare(b.name,'tr',{sensitivity:'base'}));
+
+    // ✅ İstenen format: "1) Ableton"
     sorted.forEach((b, idx) => {
       const id = 'b_' + b.id;
       const label = document.createElement('label');
@@ -143,8 +145,7 @@
       label.innerHTML = `
         <input type="checkbox" id="${id}" />
         <div class="meta">
-          <div class="name">${idx+1} ${escapeHtml(b.name)} - ${b.count} Ürün</div>
-          <div class="sub">${escapeHtml(b.slug)}</div>
+          <div class="name">${idx+1}) ${escapeHtml(b.name)}</div>
         </div>
       `;
       const cb = label.querySelector('input');
@@ -156,6 +157,7 @@
       });
       els.list.appendChild(label);
     });
+
     updateSelCount();
   }
 
@@ -177,15 +179,20 @@
 
   function addResult(r){
     results.push(r);
+    const no = results.length; // ✅ Liste Sıra No
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td>${no}</td>
       <td>${escapeHtml(r.brand)}</td>
       <td>${escapeHtml(r.title)}</td>
+      <td>${escapeHtml(r.code || '')}</td>
       <td class="${rowClass(r.stock)}">${escapeHtml(r.stock)}</td>
       <td>${escapeHtml(r.ean || '')}</td>
       <td><a href="${r.url}" target="_blank" rel="noopener">Aç</a></td>
     `;
     els.rows.appendChild(tr);
+
     els.btnExport.disabled = results.length === 0;
     els.btnClear.disabled = results.length === 0;
   }
@@ -198,11 +205,15 @@
     setStatus('Temizlendi.');
   }
 
+  // ✅ Export formatı da aynı kolonlar
   function downloadTxt(){
-    const lines = results.map(r => {
+    const lines = results.map((r, i) => {
+      const no = i + 1;
+      const code = r.code ? r.code : '';
       const ean = r.ean ? r.ean : '';
-      return `${r.brand} | ${r.title} | ${r.stock} | EAN:${ean} | ${r.url}`;
+      return `${no} | ${r.brand} | ${r.title} | KOD:${code} | ${r.stock} | EAN:${ean} | ${r.url}`;
     });
+
     const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
