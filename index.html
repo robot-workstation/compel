@@ -7,7 +7,7 @@
   <style>
     :root { color-scheme: dark; }
     body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0b0d12; color:#eaeef7; }
-    header { padding:14px 16px; border-bottom:1px solid #1f2430; display:flex; gap:10px; align-items:center; }
+    header { padding:14px 16px; border-bottom:1px solid #1f2430; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     header .pill { font-size:12px; padding:4px 8px; border:1px solid #2a3140; border-radius:999px; color:#cbd5e1; }
     main { display:grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 58px); }
     aside { border-right:1px solid #1f2430; padding:14px; overflow:auto; }
@@ -30,7 +30,7 @@
     .meta { display:flex; flex-direction:column; line-height:1.15; }
     .meta .name { font-weight:800; }
     .meta .sub { font-size:12px; color:#9aa7bd; margin-top:2px; }
-    .status { font-size:12px; color:#9aa7bd; margin:6px 0 10px 0; }
+    .status { font-size:12px; color:#9aa7bd; margin:6px 0 10px 0; white-space:pre-wrap; }
     table { width:100%; border-collapse:collapse; }
     th, td { border-bottom:1px solid #1f2430; padding:10px 8px; text-align:left; vertical-align:top; }
     th { font-size:12px; color:#cbd5e1; position:sticky; top:0; background:#0b0d12; }
@@ -53,6 +53,7 @@
 <header>
   <strong>Compel Marka Tarayıcı</strong>
   <span class="pill">Stok + EAN (fiyat yok)</span>
+  <span class="pill" id="apiPill">API: yükleniyor...</span>
 </header>
 
 <main>
@@ -96,10 +97,8 @@
 </main>
 
 <script>
-  // ✅ BURAYI DEĞİŞTİR
-  // Örn: const API_BASE = "https://compel-api.senin-domainin.dev";
-  // veya: const API_BASE = "https://xxxx.workers.dev";
-  const API_BASE = "https://SENIN-API.dev";
+  // ✅ Worker API adresin (hazır koydum)
+  const API_BASE = "https://robot-workstation.tvkapora.workers.dev";
 
   const els = {
     list: document.getElementById('brandList'),
@@ -111,16 +110,15 @@
     btnClear: document.getElementById('btnClear'),
     status: document.getElementById('status'),
     rows: document.getElementById('rows'),
+    apiPill: document.getElementById('apiPill'),
   };
+
+  els.apiPill.textContent = "API: " + API_BASE;
 
   let brands = [];
   let selected = new Set();
   let results = [];
   let scanning = false;
-
-  function updateSelCount(){
-    els.selCount.textContent = `${selected.size}/${brands.length}`;
-  }
 
   function escapeHtml(s){
     return String(s ?? '')
@@ -129,6 +127,10 @@
       .replaceAll('>','&gt;')
       .replaceAll('"','&quot;')
       .replaceAll("'","&#39;");
+  }
+
+  function updateSelCount(){
+    els.selCount.textContent = `${selected.size}/${brands.length}`;
   }
 
   function renderBrands(){
@@ -212,10 +214,15 @@
   }
 
   async function loadBrands(){
-    const res = await fetch(`${API_BASE}/api/brands`);
-    if (!res.ok) throw new Error('brands ' + res.status);
+    setStatus("Markalar yükleniyor...");
+    const res = await fetch(`${API_BASE}/api/brands`, { cache: "no-store" });
+    if (!res.ok) {
+      const t = await res.text().catch(()=> "");
+      throw new Error(`API /api/brands hata: ${res.status}\n${t}`);
+    }
     brands = await res.json();
     renderBrands();
+    setStatus(`Hazır. Marka sayısı: ${brands.length}`);
   }
 
   async function scan(){
@@ -233,7 +240,8 @@
     });
 
     if (!res.ok) {
-      setStatus('Hata: ' + res.status);
+      const t = await res.text().catch(()=> "");
+      setStatus(`Hata: ${res.status}\n${t}`);
       setScanning(false);
       return;
     }
@@ -269,8 +277,6 @@
         } else if (msg.type === 'product') {
           totalProducts++;
           addResult(msg.data);
-        } else if (msg.type === 'info') {
-          setStatus(msg.message);
         } else if (msg.type === 'done') {
           setStatus(`Bitti. Toplam ürün: ${totalProducts}`);
         } else if (msg.type === 'error') {
@@ -296,7 +302,9 @@
   els.btnExport.addEventListener('click', downloadTxt);
   els.btnClear.addEventListener('click', clearResults);
 
-  loadBrands().catch((e) => setStatus('Markalar yüklenemedi: ' + (e?.message || e)));
+  loadBrands().catch((e) => {
+    setStatus('Markalar yüklenemedi:\n' + (e?.message || e));
+  });
 </script>
 </body>
 </html>
