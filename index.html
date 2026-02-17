@@ -81,9 +81,9 @@
     <table>
       <thead>
         <tr>
-          <th>Liste Sıra No</th>
+          <th>Sıra</th>
           <th>Marka</th>
-          <th>Ürün</th>
+          <th>Ürün Adı</th>
           <th>Ürün Kodu</th>
           <th>Stok</th>
           <th>EAN</th>
@@ -93,7 +93,7 @@
       <tbody id="rows"></tbody>
     </table>
 
-    <p class="small">Not: Ürün kodu her listede olmayabilir; bulunamazsa boş kalır.</p>
+    <p class="small">Not: Ürün adı boş kalmaz. Ürün kodu bazı kartlarda yoksa boş gelebilir.</p>
   </section>
 </main>
 
@@ -119,6 +119,7 @@
   let selected = new Set();
   let results = [];
   let scanning = false;
+  let rowNo = 0;
 
   function escapeHtml(s){
     return String(s ?? '')
@@ -136,16 +137,13 @@
   function renderBrands(){
     els.list.innerHTML = '';
     const sorted = [...brands].sort((a,b)=> a.name.localeCompare(b.name,'tr',{sensitivity:'base'}));
-
-    // ✅ İstenen format: "1) Ableton"
     sorted.forEach((b, idx) => {
-      const id = 'b_' + b.id;
       const label = document.createElement('label');
       label.className = 'brand';
       label.innerHTML = `
-        <input type="checkbox" id="${id}" />
+        <input type="checkbox" />
         <div class="meta">
-          <div class="name">${idx+1}) ${escapeHtml(b.name)}</div>
+          <div class="name">${idx+1}) ${escapeHtml(b.name)} (${b.count})</div>
         </div>
       `;
       const cb = label.querySelector('input');
@@ -157,7 +155,6 @@
       });
       els.list.appendChild(label);
     });
-
     updateSelCount();
   }
 
@@ -178,18 +175,28 @@
   }
 
   function addResult(r){
-    results.push(r);
-    const no = results.length; // ✅ Liste Sıra No
+    rowNo++;
+    const out = {
+      sıra: rowNo,
+      brand: r.brand || "",
+      title: r.title || "Ürün",
+      productCode: r.productCode || "",
+      stock: r.stock || "",
+      ean: r.ean || "",
+      url: r.url || "",
+    };
+
+    results.push(out);
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${no}</td>
-      <td>${escapeHtml(r.brand)}</td>
-      <td>${escapeHtml(r.title)}</td>
-      <td>${escapeHtml(r.code || '')}</td>
-      <td class="${rowClass(r.stock)}">${escapeHtml(r.stock)}</td>
-      <td>${escapeHtml(r.ean || '')}</td>
-      <td><a href="${r.url}" target="_blank" rel="noopener">Aç</a></td>
+      <td>${out.sıra}</td>
+      <td>${escapeHtml(out.brand)}</td>
+      <td>${escapeHtml(out.title)}</td>
+      <td>${escapeHtml(out.productCode)}</td>
+      <td class="${rowClass(out.stock)}">${escapeHtml(out.stock)}</td>
+      <td>${escapeHtml(out.ean)}</td>
+      <td><a href="${out.url}" target="_blank" rel="noopener">Aç</a></td>
     `;
     els.rows.appendChild(tr);
 
@@ -199,21 +206,17 @@
 
   function clearResults(){
     results = [];
+    rowNo = 0;
     els.rows.innerHTML = '';
     els.btnExport.disabled = true;
     els.btnClear.disabled = true;
     setStatus('Temizlendi.');
   }
 
-  // ✅ Export formatı da aynı kolonlar
   function downloadTxt(){
-    const lines = results.map((r, i) => {
-      const no = i + 1;
-      const code = r.code ? r.code : '';
-      const ean = r.ean ? r.ean : '';
-      return `${no} | ${r.brand} | ${r.title} | KOD:${code} | ${r.stock} | EAN:${ean} | ${r.url}`;
-    });
-
+    const lines = results.map(r =>
+      `${r.sıra} | ${r.brand} | ${r.title} | KOD:${r.productCode} | ${r.stock} | EAN:${r.ean} | ${r.url}`
+    );
     const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
