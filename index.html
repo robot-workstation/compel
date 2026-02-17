@@ -149,7 +149,7 @@
 
   <section>
     <div class="rightBtns">
-      <button id="btnExport" disabled>TXT Export</button>
+      <button id="btnExport" disabled>CSV Export</button>
       <button id="btnClear" disabled>Sonuçları Temizle</button>
     </div>
 
@@ -322,15 +322,38 @@
     setStatus('Temizlendi.');
   }
 
-  function downloadTxt(){
-    const header = "Sıra No\tMarka\tÜrün Adı\tÜrün Kodu\tStok\tEAN";
-    const lines = results.map(r =>
-      `${r.sıra}\t${r.brand}\t${r.title}\t${r.productCode}\t${r.stock}\t${r.ean}`
-    );
-    const blob = new Blob([[header, ...lines].join('\n')], {type:'text/plain;charset=utf-8'});
+  // ✅ CSV Export (TXT yerine)
+  function downloadCsv(){
+    // Türkiye/Excel uyumu için ayraç olarak ; kullanıldı.
+    // İstersen "," yapmak için CSV_DELIM değerini değiştir.
+    const CSV_DELIM = ';';
+
+    const toCsvValue = (v) => {
+      const s = String(v ?? '');
+      // Ayraç, tırnak, satır sonu varsa RFC4180 uyumlu şekilde tırnakla ve kaçır.
+      const needsQuote = s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes(CSV_DELIM);
+      return needsQuote ? `"${s.replaceAll('"','""')}"` : s;
+    };
+
+    const headerCols = ["Sıra No","Marka","Ürün Adı","Ürün Kodu","Stok","EAN"];
+    const header = headerCols.map(toCsvValue).join(CSV_DELIM);
+
+    const lines = results.map(r => ([
+      r.sıra,
+      r.brand,
+      r.title,
+      r.productCode,
+      r.stock,
+      r.ean
+    ].map(toCsvValue).join(CSV_DELIM)));
+
+    // Excel'in Türkçe karakterleri düzgün açması için UTF-8 BOM ekledik.
+    const csv = '\ufeff' + [header, ...lines].join('\r\n');
+
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'compel-sonuc.txt';
+    a.download = 'compel-sonuc.csv';
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(a.href);
@@ -423,7 +446,7 @@
   });
 
   els.btnScan.addEventListener('click', scan);
-  els.btnExport.addEventListener('click', downloadTxt);
+  els.btnExport.addEventListener('click', downloadCsv);
   els.btnClear.addEventListener('click', clearResults);
 
   loadBrands().catch((e) => {
