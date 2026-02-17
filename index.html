@@ -14,27 +14,16 @@
     button:disabled{opacity:.6;cursor:not-allowed}
     .muted{color:#6b7280;font-size:13px;margin-top:8px}
     .card{border:1px solid #e5e7eb;background:#fff;border-radius:14px;padding:12px;margin-top:14px}
-    .cardHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .cardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
     .title{font-weight:700}
-    .brandGrid{
-      margin-top:10px;
-      column-count: 3;
-      column-gap: 18px;
-    }
-    @media (max-width: 980px){ .brandGrid{column-count:2} }
-    @media (max-width: 640px){ .brandGrid{column-count:1} }
-
+    .brandBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .brandList{margin-top:10px;border-top:1px solid #f0f2f6}
     .brandItem{
-      break-inside: avoid;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      padding:8px 0;
-      border-bottom:1px solid #f0f2f6;
+      display:flex;justify-content:space-between;align-items:center;
+      gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f6;
     }
     .brandLeft{display:flex;align-items:center;gap:10px;min-width:0}
-    .brandName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width: 320px}
+    .brandName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px}
     .count{color:#374151;font-size:13px;white-space:nowrap}
     table{width:100%;border-collapse:collapse}
     th,td{padding:10px;border-bottom:1px solid #eef2f7;vertical-align:top;text-align:left}
@@ -56,16 +45,17 @@
     <section class="card">
       <div class="cardHead">
         <div>
-          <div class="title">Markalar (A → Z)</div>
-          <div class="muted" id="brandMeta">0 marka</div>
+          <div class="title">Markalar</div>
+          <div class="muted" id="brandMeta">0/0</div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button id="btnSelectAll" disabled>Tümünü Seç</button>
+        <div class="brandBar">
+          <button id="btnAll" disabled>Hepsi</button>
+          <button id="btnClear" disabled>Temizle</button>
           <span class="muted" id="status">Hazır.</span>
         </div>
       </div>
 
-      <div class="brandGrid" id="brandList"></div>
+      <div class="brandList" id="brandList"></div>
     </section>
 
     <section class="card">
@@ -96,31 +86,28 @@
 <script>
 (() => {
   const WORKER = "https://robot-workstation.tvkapora.workers.dev";
-
+  const enc = encodeURIComponent;
   const $ = (id) => document.getElementById(id);
 
   const elCat = $("catUrl");
   const elMax = $("maxPages");
   const btnRun = $("btnRun");
   const btnStop = $("btnStop");
-  const btnSelectAll = $("btnSelectAll");
-  const brandList = $("brandList");
-  const brandMeta = $("brandMeta");
-  const prodMeta = $("prodMeta");
+  const btnAll = $("btnAll");
+  const btnClear = $("btnClear");
+  const brandListEl = $("brandList");
+  const brandMetaEl = $("brandMeta");
+  const prodMetaEl = $("prodMeta");
   const statusEl = $("status");
   const rowsEl = $("rows");
 
   const state = {
     ctrl: null,
     products: [],
-    brandCounts: new Map(),
-    filterMode: "ALL",        // "ALL" | "CUSTOM"
-    selectedBrands: new Set(),// CUSTOM modunda kullanılır
-    rowByUrl: new Map(),
-    allBrands: [],
+    brands: [],              // [{name,count,pages}]
+    selected: new Set(),     // seçili marka isimleri
+    rowByUrl: new Map()
   };
-
-  const enc = encodeURIComponent;
 
   const setStatus = (s) => statusEl.textContent = s;
 
@@ -133,66 +120,50 @@
       .replaceAll("'","&#39;");
   }
 
-  function shouldShowBrand(brand) {
-    if (state.filterMode === "ALL") return true;
-    return state.selectedBrands.has(brand);
+  function updateBrandMeta() {
+    const total = state.brands.length;
+    const sel = state.selected.size;
+    brandMetaEl.textContent = `${sel}/${total}`;
   }
 
   function applyFilter() {
     for (const p of state.products) {
       const tr = state.rowByUrl.get(p.url);
       if (!tr) continue;
-      tr.style.display = shouldShowBrand(p.brand) ? "" : "none";
+      tr.style.display = state.selected.has(p.brand) ? "" : "none";
     }
+    updateBrandMeta();
   }
 
   function renderBrands() {
-    const items = [...state.brandCounts.entries()]
-      .map(([brand, count]) => ({ brand, count }))
-      .sort((a,b) => a.brand.localeCompare(b.brand, "tr"));
+    // A-Z
+    const items = [...state.brands].sort((a,b) => a.name.localeCompare(b.name, "tr"));
 
-    state.allBrands = items.map(x => x.brand);
-    brandMeta.textContent = `${items.length} marka`;
-
-    brandList.innerHTML = items.map(({brand,count}) => {
-      const checked = (state.filterMode === "ALL") ? true : state.selectedBrands.has(brand);
+    brandListEl.innerHTML = items.map(({name,count,pages}) => {
+      const checked = state.selected.has(name);
       return `
         <div class="brandItem">
-          <label class="brandLeft" title="${escapeHtml(brand)}">
-            <input type="checkbox" data-brand="${escapeHtml(brand)}" ${checked ? "checked" : ""} />
-            <span class="brandName">${escapeHtml(brand)}</span>
+          <label class="brandLeft" title="${escapeHtml(name)}">
+            <input type="checkbox" data-brand="${escapeHtml(name)}" ${checked ? "checked" : ""} />
+            <span class="brandName">${escapeHtml(name)}</span>
           </label>
-          <span class="count">${count} ürün</span>
+          <span class="count">${count} Ürün (~${pages} Sayfa)</span>
         </div>
       `;
     }).join("");
 
-    brandList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    brandListEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       cb.addEventListener("change", () => {
         const brand = cb.getAttribute("data-brand");
-
-        // ALL modundayken ilk değişiklikte CUSTOM'a geç
-        if (state.filterMode === "ALL") {
-          state.filterMode = "CUSTOM";
-          state.selectedBrands = new Set(state.allBrands); // hepsi seçili başlasın
-        }
-
-        if (cb.checked) state.selectedBrands.add(brand);
-        else state.selectedBrands.delete(brand);
-
-        // tekrar hepsi seçili olduysa ALL'a geri dön
-        if (state.selectedBrands.size === state.allBrands.length) {
-          state.filterMode = "ALL";
-          state.selectedBrands.clear();
-        }
-
+        if (cb.checked) state.selected.add(brand);
+        else state.selected.delete(brand);
         applyFilter();
-        // checkboxlar ALL moduna döndüyse hepsi işaretli görünsün
-        if (state.filterMode === "ALL") renderBrands();
       });
     });
 
-    btnSelectAll.disabled = items.length === 0;
+    btnAll.disabled = items.length === 0;
+    btnClear.disabled = items.length === 0;
+    updateBrandMeta();
   }
 
   function addRow(p) {
@@ -206,7 +177,6 @@
     `;
     rowsEl.appendChild(tr);
     state.rowByUrl.set(p.url, tr);
-    tr.style.display = shouldShowBrand(p.brand) ? "" : "none";
   }
 
   async function fetchJSON(url, signal) {
@@ -224,7 +194,7 @@
     for (let page = 2; page <= wantPages; page++) {
       const j = await fetchJSON(`${WORKER}/list?b=${enc(categoryUrl)}&p=${page}`, signal);
       (j.links || []).forEach(x => all.add(x));
-      setStatus(`Liste: Sayfa ${page}/${wantPages} (link: ${all.size})`);
+      setStatus(`Liste: ${page}/${wantPages} (link: ${all.size})`);
     }
     return [...all];
   }
@@ -259,29 +229,28 @@
 
     btnRun.disabled = true;
     btnStop.disabled = false;
-    btnSelectAll.disabled = true;
+    btnAll.disabled = true;
+    btnClear.disabled = true;
 
     state.ctrl = new AbortController();
     const signal = state.ctrl.signal;
 
-    // reset (her çalıştırmada temiz başla)
+    // reset
     rowsEl.innerHTML = "";
-    brandList.innerHTML = "";
+    brandListEl.innerHTML = "";
     state.products = [];
-    state.brandCounts = new Map();
-    state.filterMode = "ALL";
-    state.selectedBrands.clear();
+    state.brands = [];
+    state.selected.clear();
     state.rowByUrl.clear();
-    state.allBrands = [];
-    prodMeta.textContent = "0 ürün";
-    brandMeta.textContent = "0 marka";
+    prodMetaEl.textContent = "0 ürün";
+    brandMetaEl.textContent = "0/0";
 
     try {
       const maxPages = parseInt(elMax.value || "0", 10) || 0;
 
       setStatus("Linkler alınıyor…");
       const links = await fetchLinks(categoryUrl, maxPages, signal);
-      setStatus(`Toplam ${links.length} link bulundu. Ürünler çekiliyor…`);
+      setStatus(`Toplam ${links.length} link. Ürünler çekiliyor…`);
 
       const prodFn = async (url) => {
         const j = await fetchJSON(`${WORKER}/prod?u=${enc(url)}`, signal);
@@ -296,13 +265,25 @@
 
       const out = await runQueue(links, prodFn, 8, signal);
 
+      const counts = new Map();
+
       for (const p of out.filter(Boolean)) {
         state.products.push(p);
-        state.brandCounts.set(p.brand, (state.brandCounts.get(p.brand) || 0) + 1);
+        counts.set(p.brand, (counts.get(p.brand) || 0) + 1);
         addRow(p);
       }
 
-      prodMeta.textContent = `${state.products.length} ürün`;
+      // marka listesi + sayfa hesabı
+      state.brands = [...counts.entries()].map(([name, count]) => ({
+        name,
+        count,
+        pages: Math.max(1, Math.ceil(count / 20)),
+      }));
+
+      // varsayılan: hepsi seçili (markalar hep görünür, ürünler filtrelenir)
+      state.selected = new Set(state.brands.map(b => b.name));
+
+      prodMetaEl.textContent = `${state.products.length} ürün`;
       renderBrands();
       applyFilter();
       setStatus("Bitti ✅");
@@ -322,14 +303,19 @@
     if (state.ctrl) state.ctrl.abort();
   });
 
-  btnSelectAll.addEventListener("click", () => {
-    state.filterMode = "ALL";
-    state.selectedBrands.clear();
-    renderBrands();
+  btnAll.addEventListener("click", () => {
+    state.selected = new Set(state.brands.map(b => b.name));
+    renderBrands();     // checkboxlar güncellensin (markalar hep görünür)
     applyFilter();
   });
 
-  // varsayılan
+  btnClear.addEventListener("click", () => {
+    state.selected.clear();
+    renderBrands();     // checkboxlar güncellensin
+    applyFilter();
+  });
+
+  // default
   elCat.value = "https://compel.com.tr/10-dj-urunleri";
   setStatus("Hazır.");
 })();
