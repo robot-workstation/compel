@@ -6,41 +6,115 @@
   <title>Compel Marka Tarayıcı</title>
   <style>
     :root { color-scheme: dark; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0b0d12; color:#eaeef7; }
-    header { padding:14px 16px; border-bottom:1px solid #1f2430; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    header .pill { font-size:12px; padding:4px 8px; border:1px solid #2a3140; border-radius:999px; color:#cbd5e1; }
-    main { display:grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 58px); }
-    aside { border-right:1px solid #1f2430; padding:14px; overflow:auto; }
-    section { padding:14px; overflow:auto; }
-    h2 { margin:0 0 10px 0; font-size:14px; color:#cbd5e1; letter-spacing:.2px; display:flex; justify-content:space-between; align-items:center; }
-    .btnrow { display:flex; gap:8px; margin:10px 0 12px 0; flex-wrap:wrap; }
+
+    /* ✅ Sayfa komple scroll olmasın */
+    html, body { height: 100%; }
+    body {
+      margin:0;
+      height: 100vh;
+      overflow: hidden;              /* <-- kritik */
+      display:flex;
+      flex-direction:column;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:#0b0d12;
+      color:#eaeef7;
+    }
+
+    header {
+      padding:14px 16px;
+      border-bottom:1px solid #1f2430;
+      flex: 0 0 auto;
+    }
+
+    main {
+      flex: 1 1 auto;
+      overflow: hidden;              /* <-- kritik */
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 0;                 /* <-- kritik (grid child scroll için) */
+    }
+
+    aside {
+      border-right:1px solid #1f2430;
+      padding:14px;
+      overflow: hidden;              /* aside kendi içinde yönetecek */
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
+    }
+
+    section {
+      padding:14px;
+      overflow: hidden;              /* section kendi içinde yönetecek */
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
+    }
+
+    h2 {
+      margin:0 0 10px 0;
+      font-size:14px;
+      color:#cbd5e1;
+      letter-spacing:.2px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex: 0 0 auto;
+    }
+
+    .btnrow { display:flex; gap:8px; margin:10px 0 12px 0; flex-wrap:wrap; flex:0 0 auto; }
+
     button {
       background:#111827; color:#eaeef7; border:1px solid #2a3140;
       padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:13px;
     }
     button:hover { border-color:#3a465f; }
     button:disabled { opacity:.6; cursor:not-allowed; }
-    .list { display:flex; flex-direction:column; gap:6px; }
+
+    /* ✅ SADECE marka listesi scroll */
+    .list {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
     label.brand {
-      display:flex; gap:10px; align-items:center; padding:10px; border:1px solid #1f2430; border-radius:12px;
+      display:flex; gap:10px; align-items:center; padding:10px;
+      border:1px solid #1f2430; border-radius:12px;
       background:#0f1320;
     }
     label.brand:hover { border-color:#2a3140; }
     label.brand input { width:18px; height:18px; }
+
     .meta { display:flex; flex-direction:column; line-height:1.15; }
     .meta .name { font-weight:800; }
-    .status { font-size:12px; color:#9aa7bd; margin:6px 0 10px 0; white-space:pre-wrap; }
+
+    .status { font-size:12px; color:#9aa7bd; margin:6px 0 10px 0; white-space:pre-wrap; flex:0 0 auto; }
+
+    .rightBtns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; flex:0 0 auto; }
+
+    /* ✅ sonuçlar tablosu section içinde scroll */
+    .tableWrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      border-top: 1px solid #1f2430;
+    }
+
     table { width:100%; border-collapse:collapse; }
     th, td { border-bottom:1px solid #1f2430; padding:10px 8px; text-align:left; vertical-align:top; }
     th { font-size:12px; color:#cbd5e1; position:sticky; top:0; background:#0b0d12; }
     td { font-size:13px; color:#eaeef7; }
-    a { color:#93c5fd; text-decoration:none; }
-    a:hover { text-decoration:underline; }
-    .small { font-size:12px; color:#9aa7bd; }
-    .rightBtns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+
+    .small { font-size:12px; color:#9aa7bd; margin-top:10px; flex:0 0 auto; }
+
     .ok { color:#86efac; }
     .bad { color:#fca5a5; }
     .unk { color:#fcd34d; }
+
     @media (max-width: 900px) {
       main { grid-template-columns: 1fr; }
       aside { border-right:0; border-bottom:1px solid #1f2430; }
@@ -51,8 +125,6 @@
 <body>
 <header>
   <strong>Compel Marka Tarayıcı</strong>
-  <span class="pill">Stok + EAN + Ürün Kodu</span>
-  <span class="pill" id="apiPill">API: yükleniyor...</span>
 </header>
 
 <main>
@@ -76,24 +148,25 @@
       <button id="btnExport" disabled>TXT Export</button>
       <button id="btnClear" disabled>Sonuçları Temizle</button>
     </div>
+
     <div class="status" id="status">Hazır.</div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Sıra</th>
-          <th>Marka</th>
-          <th>Ürün Adı</th>
-          <th>Ürün Kodu</th>
-          <th>Stok</th>
-          <th>EAN</th>
-          <th>Link</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Marka</th>
+            <th>Ürün Adı</th>
+            <th>Ürün Kodu</th>
+            <th>Stok</th>
+            <th>EAN</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
 
-    <p class="small">Not: Ürün adı boş kalmaz. Ürün kodu bazı kartlarda yoksa boş gelebilir.</p>
+    <p class="small">Not: Ürün adı boş kalmaz.</p>
   </section>
 </main>
 
@@ -110,16 +183,12 @@
     btnClear: document.getElementById('btnClear'),
     status: document.getElementById('status'),
     rows: document.getElementById('rows'),
-    apiPill: document.getElementById('apiPill'),
   };
-
-  els.apiPill.textContent = "API: " + API_BASE;
 
   let brands = [];
   let selected = new Set();
   let results = [];
   let scanning = false;
-  let rowNo = 0;
 
   function escapeHtml(s){
     return String(s ?? '')
@@ -175,28 +244,23 @@
   }
 
   function addResult(r){
-    rowNo++;
     const out = {
-      sıra: rowNo,
       brand: r.brand || "",
       title: r.title || "Ürün",
       productCode: r.productCode || "",
       stock: r.stock || "",
       ean: r.ean || "",
-      url: r.url || "",
     };
 
     results.push(out);
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${out.sıra}</td>
       <td>${escapeHtml(out.brand)}</td>
       <td>${escapeHtml(out.title)}</td>
       <td>${escapeHtml(out.productCode)}</td>
       <td class="${rowClass(out.stock)}">${escapeHtml(out.stock)}</td>
       <td>${escapeHtml(out.ean)}</td>
-      <td><a href="${out.url}" target="_blank" rel="noopener">Aç</a></td>
     `;
     els.rows.appendChild(tr);
 
@@ -206,7 +270,6 @@
 
   function clearResults(){
     results = [];
-    rowNo = 0;
     els.rows.innerHTML = '';
     els.btnExport.disabled = true;
     els.btnClear.disabled = true;
@@ -214,10 +277,11 @@
   }
 
   function downloadTxt(){
+    const header = "Marka\tÜrün Adı\tÜrün Kodu\tStok\tEAN";
     const lines = results.map(r =>
-      `${r.sıra} | ${r.brand} | ${r.title} | KOD:${r.productCode} | ${r.stock} | EAN:${r.ean} | ${r.url}`
+      `${r.brand}\t${r.title}\t${r.productCode}\t${r.stock}\t${r.ean}`
     );
-    const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
+    const blob = new Blob([[header, ...lines].join('\n')], {type:'text/plain;charset=utf-8'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'compel-sonuc.txt';
