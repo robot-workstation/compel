@@ -7,12 +7,11 @@
   <style>
     :root { color-scheme: dark; }
 
-    /* ✅ Sayfa komple scroll olmasın */
     html, body { height: 100%; }
     body {
       margin:0;
       height: 100vh;
-      overflow: hidden;              /* <-- kritik */
+      overflow: hidden;               /* ✅ sayfa komple scroll yok */
       display:flex;
       flex-direction:column;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
@@ -20,24 +19,28 @@
       color:#eaeef7;
     }
 
-    header {
-      padding:14px 16px;
-      border-bottom:1px solid #1f2430;
-      flex: 0 0 auto;
+    header { padding:14px 16px; border-bottom:1px solid #1f2430; flex: 0 0 auto; }
+
+    .pill {
+      font-size:12px;
+      padding:4px 8px;
+      border:1px solid #2a3140;
+      border-radius:999px;
+      color:#cbd5e1;
     }
 
     main {
       flex: 1 1 auto;
-      overflow: hidden;              /* <-- kritik */
+      overflow: hidden;
       display:grid;
       grid-template-columns: 360px 1fr;
-      min-height: 0;                 /* <-- kritik (grid child scroll için) */
+      min-height: 0;
     }
 
     aside {
       border-right:1px solid #1f2430;
       padding:14px;
-      overflow: hidden;              /* aside kendi içinde yönetecek */
+      overflow: hidden;
       display:flex;
       flex-direction:column;
       min-height: 0;
@@ -45,7 +48,7 @@
 
     section {
       padding:14px;
-      overflow: hidden;              /* section kendi içinde yönetecek */
+      overflow: hidden;
       display:flex;
       flex-direction:column;
       min-height: 0;
@@ -71,11 +74,10 @@
     button:hover { border-color:#3a465f; }
     button:disabled { opacity:.6; cursor:not-allowed; }
 
-    /* ✅ SADECE marka listesi scroll */
     .list {
       flex: 1 1 auto;
       min-height: 0;
-      overflow: auto;
+      overflow: auto;                 /* ✅ sadece marka listesi scroll */
       display:flex;
       flex-direction:column;
       gap:6px;
@@ -96,11 +98,10 @@
 
     .rightBtns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; flex:0 0 auto; }
 
-    /* ✅ sonuçlar tablosu section içinde scroll */
     .tableWrap {
       flex: 1 1 auto;
       min-height: 0;
-      overflow: auto;
+      overflow: auto;                 /* ✅ sonuçlar kendi alanında scroll */
       border-top: 1px solid #1f2430;
     }
 
@@ -108,6 +109,9 @@
     th, td { border-bottom:1px solid #1f2430; padding:10px 8px; text-align:left; vertical-align:top; }
     th { font-size:12px; color:#cbd5e1; position:sticky; top:0; background:#0b0d12; }
     td { font-size:13px; color:#eaeef7; }
+
+    a { color:#93c5fd; text-decoration:none; }
+    a:hover { text-decoration:underline; }
 
     .small { font-size:12px; color:#9aa7bd; margin-top:10px; flex:0 0 auto; }
 
@@ -155,6 +159,7 @@
       <table>
         <thead>
           <tr>
+            <th>Sıra No</th>
             <th>Marka</th>
             <th>Ürün Adı</th>
             <th>Ürün Kodu</th>
@@ -166,7 +171,7 @@
       </table>
     </div>
 
-    <p class="small">Not: Ürün adı boş kalmaz.</p>
+    <p class="small">Not: Ürün adına tıklayınca yeni sekmede ürün sayfası açılır.</p>
   </section>
 </main>
 
@@ -189,6 +194,7 @@
   let selected = new Set();
   let results = [];
   let scanning = false;
+  let rowNo = 0;
 
   function escapeHtml(s){
     return String(s ?? '')
@@ -209,19 +215,25 @@
     sorted.forEach((b, idx) => {
       const label = document.createElement('label');
       label.className = 'brand';
-      label.innerHTML = `
-        <input type="checkbox" />
-        <div class="meta">
-          <div class="name">${idx+1}) ${escapeHtml(b.name)} (${b.count})</div>
-        </div>
-      `;
-      const cb = label.querySelector('input');
+
+      const cb = document.createElement('input');
+      cb.type = "checkbox";
       cb.checked = selected.has(b.id);
       cb.addEventListener('change', () => {
         if (cb.checked) selected.add(b.id);
         else selected.delete(b.id);
         updateSelCount();
       });
+
+      const meta = document.createElement('div');
+      meta.className = "meta";
+      const name = document.createElement('div');
+      name.className = "name";
+      name.textContent = `${idx+1}) ${b.name} (${b.count})`;
+      meta.appendChild(name);
+
+      label.appendChild(cb);
+      label.appendChild(meta);
       els.list.appendChild(label);
     });
     updateSelCount();
@@ -244,24 +256,57 @@
   }
 
   function addResult(r){
+    rowNo++;
+
     const out = {
+      sıra: rowNo,
       brand: r.brand || "",
       title: r.title || "Ürün",
       productCode: r.productCode || "",
       stock: r.stock || "",
       ean: r.ean || "",
+      url: r.url || "",
     };
 
     results.push(out);
 
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(out.brand)}</td>
-      <td>${escapeHtml(out.title)}</td>
-      <td>${escapeHtml(out.productCode)}</td>
-      <td class="${rowClass(out.stock)}">${escapeHtml(out.stock)}</td>
-      <td>${escapeHtml(out.ean)}</td>
-    `;
+
+    const tdNo = document.createElement('td');
+    tdNo.textContent = String(out.sıra);
+
+    const tdBrand = document.createElement('td');
+    tdBrand.textContent = out.brand;
+
+    const tdTitle = document.createElement('td');
+    if (out.url) {
+      const a = document.createElement('a');
+      a.href = out.url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = out.title;
+      tdTitle.appendChild(a);
+    } else {
+      tdTitle.textContent = out.title;
+    }
+
+    const tdCode = document.createElement('td');
+    tdCode.textContent = out.productCode;
+
+    const tdStock = document.createElement('td');
+    tdStock.textContent = out.stock;
+    tdStock.className = rowClass(out.stock);
+
+    const tdEan = document.createElement('td');
+    tdEan.textContent = out.ean;
+
+    tr.appendChild(tdNo);
+    tr.appendChild(tdBrand);
+    tr.appendChild(tdTitle);
+    tr.appendChild(tdCode);
+    tr.appendChild(tdStock);
+    tr.appendChild(tdEan);
+
     els.rows.appendChild(tr);
 
     els.btnExport.disabled = results.length === 0;
@@ -270,6 +315,7 @@
 
   function clearResults(){
     results = [];
+    rowNo = 0;
     els.rows.innerHTML = '';
     els.btnExport.disabled = true;
     els.btnClear.disabled = true;
@@ -277,9 +323,9 @@
   }
 
   function downloadTxt(){
-    const header = "Marka\tÜrün Adı\tÜrün Kodu\tStok\tEAN";
+    const header = "Sıra No\tMarka\tÜrün Adı\tÜrün Kodu\tStok\tEAN";
     const lines = results.map(r =>
-      `${r.brand}\t${r.title}\t${r.productCode}\t${r.stock}\t${r.ean}`
+      `${r.sıra}\t${r.brand}\t${r.title}\t${r.productCode}\t${r.stock}\t${r.ean}`
     );
     const blob = new Blob([[header, ...lines].join('\n')], {type:'text/plain;charset=utf-8'});
     const a = document.createElement('a');
