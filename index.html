@@ -26,7 +26,7 @@
 </div>
 
 <script>
-const WORKER="https://robot-workstation.tvkapora.workers.dev"; // <-- burayı değiştir
+const WORKER="https://robot-workstation.tvkapora.workers.dev"; // <-- kendi worker domainin
 
 const BRANDS=[
 ["Ableton","https://compel.com.tr/brand/1-ableton"],
@@ -64,9 +64,8 @@ const $=x=>document.querySelector(x);
 const box=$("#brands"); box.innerHTML=BRANDS.map(([n,u],i)=>
 `<label><input type=checkbox data-u="${u}"> ${n}</label>`).join("");
 
-let stop=false;
-const j = (o)=>JSON.stringify(o);
-const api = async (path, params) => (await fetch(`${WORKER}${path}?`+new URLSearchParams(params))).json();
+const api = async (path, params) =>
+  (await fetch(`${WORKER}${path}?` + new URLSearchParams(params))).json();
 
 function setProg(done,total){
   const pct = total?Math.floor(done*100/total):0;
@@ -74,11 +73,11 @@ function setProg(done,total){
 }
 
 $("#scan").onclick=async()=>{
-  stop=false; $("#ta").value=""; $("#stat").textContent="Hazırlanıyor...";
+  $("#ta").value=""; $("#stat").textContent="Hazırlanıyor...";
   const sel=[...document.querySelectorAll("#brands input:checked")].map(x=>x.dataset.u);
   if(!sel.length){ $("#stat").textContent="Marka seç."; return; }
 
-  // 1) toplam ürün sayısını öğren
+  // 1) toplam ürün sayısı
   let meta=[];
   for (const b of sel){
     const x=await api("/list",{b,p:1});
