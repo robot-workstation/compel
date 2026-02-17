@@ -1,0 +1,113 @@
+<!doctype html><meta charset="utf-8">
+<title>Compel Stok Tarayıcı</title>
+<style>
+  body{margin:0;font:13px system-ui;height:100vh;display:flex;flex-direction:column}
+  #top{padding:8px;display:flex;gap:8px;align-items:center}
+  #main{flex:1;min-height:0;display:flex;gap:8px;padding:8px}
+  #brands{flex:0 0 360px;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start}
+  label{display:flex;gap:6px;align-items:center;white-space:nowrap}
+  #out{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  textarea{flex:1;min-height:0;width:100%;resize:none;font:12px ui-monospace,monospace}
+  progress{width:160px}
+  button{cursor:pointer}
+</style>
+
+<div id="top">
+  <button id="scan">Tara</button>
+  <button id="copy">Kopyala</button>
+  <button id="dl">.txt indir</button>
+  <progress id="pg" max="100" value="0"></progress><span id="pct">0%</span>
+  <span id="stat"></span>
+</div>
+
+<div id="main">
+  <div id="brands"></div>
+  <div id="out"><textarea id="ta" readonly></textarea></div>
+</div>
+
+<script>
+const WORKER="https://robot-workstation.tvkapora.workers.dev"; // <-- burayı değiştir
+
+const BRANDS=[
+["Ableton","https://compel.com.tr/brand/1-ableton"],
+["Allen & Heath","https://compel.com.tr/brand/48-allen-heath"],
+["Arturia","https://compel.com.tr/brand/4-arturia"],
+["Avalon","https://compel.com.tr/brand/6-avalon"],
+["Avid","https://compel.com.tr/brand/7-avid"],
+["Compel","https://compel.com.tr/brand/49-compel"],
+["Cranborne Audio","https://compel.com.tr/brand/41-cranborne-audio"],
+["Crane Song","https://compel.com.tr/brand/9-crane-song"],
+["Denon DJ","https://compel.com.tr/brand/10-denon-dj"],
+["Fender Studio","https://compel.com.tr/brand/50-fender-studio"],
+["Genelec","https://compel.com.tr/brand/11-genelec"],
+["HeadRush","https://compel.com.tr/brand/12-headrush"],
+["Hosa","https://compel.com.tr/brand/13-hosa"],
+["M-Audio","https://compel.com.tr/brand/16-m-audio"],
+["M-Game","https://compel.com.tr/brand/44-m-game"],
+["Marantz Professional","https://compel.com.tr/brand/17-marantz-professional"],
+["Numark","https://compel.com.tr/brand/20-numark"],
+["PreSonus","https://compel.com.tr/brand/21-presonus"],
+["Rane","https://compel.com.tr/brand/23-rane"],
+["Rupert Neve Designs","https://compel.com.tr/brand/25-rupert-neve-designs"],
+["RØDE","https://compel.com.tr/brand/24-rode"],
+["RØDE X","https://compel.com.tr/brand/45-rode-x"],
+["Sheeran Loopers","https://compel.com.tr/brand/47-sheeran-loopers"],
+["Sibelius","https://compel.com.tr/brand/26-sibelius"],
+["Sonarworks","https://compel.com.tr/brand/28-sonarworks"],
+["SoundSwitch","https://compel.com.tr/brand/43-soundswitch"],
+["Stanton","https://compel.com.tr/brand/42-stanton"],
+["Universal Audio","https://compel.com.tr/brand/36-universal-audio"],
+["Warm Audio","https://compel.com.tr/brand/38-warm-audio"],
+];
+
+const $=x=>document.querySelector(x);
+const box=$("#brands"); box.innerHTML=BRANDS.map(([n,u],i)=>
+`<label><input type=checkbox data-u="${u}"> ${n}</label>`).join("");
+
+let stop=false;
+const j = (o)=>JSON.stringify(o);
+const api = async (path, params) => (await fetch(`${WORKER}${path}?`+new URLSearchParams(params))).json();
+
+function setProg(done,total){
+  const pct = total?Math.floor(done*100/total):0;
+  $("#pg").value=pct; $("#pct").textContent=pct+"%";
+}
+
+$("#scan").onclick=async()=>{
+  stop=false; $("#ta").value=""; $("#stat").textContent="Hazırlanıyor...";
+  const sel=[...document.querySelectorAll("#brands input:checked")].map(x=>x.dataset.u);
+  if(!sel.length){ $("#stat").textContent="Marka seç."; return; }
+
+  // 1) toplam ürün sayısını öğren
+  let meta=[];
+  for (const b of sel){
+    const x=await api("/list",{b,p:1});
+    meta.push({b,count:x.count,pages:x.pages});
+  }
+  const total=meta.reduce((s,x)=>s+x.count,0);
+  let done=0; setProg(0,total);
+  $("#ta").value="Ürün Adı\tÜrün Kodu\tStok\n";
+
+  // 2) tara
+  for (const m of meta){
+    for (let p=1;p<=m.pages;p++){
+      const L=await api("/list",{b:m.b,p});
+      for (const url of L.links){
+        const d=await api("/prod",{u:url});
+        $("#ta").value += `${d.name}\t${d.code}\t${d.stock}\n`;
+        done++; setProg(done,total);
+        $("#stat").textContent=`${done}/${total}`;
+      }
+    }
+  }
+  $("#stat").textContent="Bitti";
+};
+
+$("#copy").onclick=()=>navigator.clipboard.writeText($("#ta").value);
+$("#dl").onclick=()=>{
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([$("#ta").value],{type:"text/plain"}));
+  a.download="compel-stok.txt"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+</script>
