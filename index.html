@@ -11,8 +11,8 @@ button:hover{background:#1f2a44;border-color:#6b7da6}
 button:disabled{opacity:.6;cursor:not-allowed}
 button:disabled:hover{background:#111827;border-color:#2a3140}
 
-/* ✅ Bilgi kutusu: 2 satır yüksekliğinde + font 1 birim büyük */
-.ibox{padding:8px 10px;margin:0 0 10px;height:34px;overflow:auto;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+/* ✅ Bilgi kutusu: 2 satır + bir yarım satır daha */
+.ibox{padding:8px 10px;margin:0 0 10px;height:50px;overflow:auto;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
 .chip{padding:2px 6px;border:1px solid #2a3140;border-radius:999px;background:#0f1320;white-space:nowrap;font-weight:600;font-size:14px}
 
 .list{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px;align-content:start}
@@ -59,7 +59,6 @@ E={l:$("brandList"),a:$("btnAll"),n:$("btnNone"),s:$("btnScan"),p:$("btnStop"),x
 
 let B=[],S=new Set,R=[],N=0,Exp=new Map,Found=new Map,abortCtrl=null,scanning=false;
 const DISP=new Map([["Marantz Professional","Marantz Prof."],["Rupert Neve Designs","Rupert Neve D."]]),dn=n=>DISP.get(n)||n;
-const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
 
 function info(s){
   E.i.innerHTML="";
@@ -87,7 +86,7 @@ function render(){
   [...B].sort((a,b)=>a.name.localeCompare(b.name,"tr",{sensitivity:"base"})).forEach((b,i)=>{
     const d=document.createElement("div");
     d.className="brand"+(S.has(b.id)?" sel":""); d.tabIndex=0; d.dataset.id=b.id;
-    d.innerHTML=`<div class=row><span class=idx>${i+1})</span><span class=nm title="${esc(dn(b.name))}">${esc(dn(b.name))}</span><span class=ct>(${esc(b.count)})</span></div>`;
+    d.innerHTML=`<div class=row><span class=idx>${i+1})</span><span class=nm title="${dn(b.name)}">${dn(b.name)}</span><span class=ct>(${b.count})</span></div>`;
     E.l.appendChild(d);
   });
 }
@@ -101,7 +100,7 @@ function add(r){
   const o={sıra:N,brand:r.brand||"",title:r.title||"Ürün",productCode:r.productCode||"",stock:r.stock||"",ean:r.ean||"",url:r.url||""};
   R.push(o);
   const tr=document.createElement("tr");
-  tr.innerHTML=`<td>${o.sıra}</td><td>${esc(o.brand)}</td><td></td><td>${esc(o.productCode)}</td><td class="${rowCls(o.stock)}">${esc(o.stock)}</td><td>${esc(o.ean)}</td>`;
+  tr.innerHTML=`<td>${o.sıra}</td><td>${o.brand}</td><td></td><td>${o.productCode}</td><td class="${rowCls(o.stock)}">${o.stock}</td><td>${o.ean}</td>`;
   const tdT=tr.children[2];
   if(o.url){const a=document.createElement("a");a.href=o.url;a.target="_blank";a.rel="noopener";a.textContent=o.title;tdT.appendChild(a)}
   else tdT.textContent=o.title;
