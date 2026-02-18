@@ -1,210 +1,119 @@
-<!doctype html><html lang="tr"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Compel Marka Tarayıcı</title>
-<style>
-:root{color-scheme:dark}html,body{height:100%}
-body{margin:0;height:100vh;overflow:hidden;display:flex;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b0d12;color:#eaeef7}
+<!doctype html><html lang=tr><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Compel Marka Tarayıcı</title><style>
+:root{color-scheme:dark}html,body{height:100%}body{margin:0;height:100vh;overflow:hidden;display:flex;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b0d12;color:#eaeef7}
 main{flex:1;overflow:hidden;display:grid;grid-template-columns:340px 1fr;min-height:0}
 aside{border-right:1px solid #1f2430;padding:8px 12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 section{padding:8px 12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.btnrow{display:flex;gap:8px;margin:0 0 10px 0;flex-wrap:wrap;flex:0 0 auto}
+.btnrow{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap;flex:0 0 auto}
 button,.statusBox{background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;font-weight:600;font-size:13px}
-button{padding:8px 10px;cursor:pointer}
-button:hover{border-color:#3a465f}button:disabled{opacity:.6;cursor:not-allowed}
-.list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:4px}
-label.brand{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
-label.brand:hover{border-color:#2a3140}label.brand input{width:18px;height:18px}
-.meta .name{font-weight:800;font-size:11px;line-height:1.15}
+button{padding:8px 10px;cursor:pointer}button:hover{border-color:#3a465f}button:disabled{opacity:.6;cursor:not-allowed}
+.list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:3px}
+label.brand{display:flex;gap:7px;align-items:center;padding:5px 7px;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
+label.brand:hover{border-color:#2a3140}label.brand input{width:17px;height:17px}
+.meta .name{font-weight:800;font-size:12px;line-height:1.12}
 .topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin-bottom:8px;flex:0 0 auto}
 .rightBtns{display:flex;gap:8px;flex-wrap:wrap}
-.statusBox{padding:8px 10px;white-space:pre-wrap;overflow:auto;flex:1 1 360px;max-height:78px}
+.statusBox{padding:8px 10px;overflow:auto;flex:1 1 360px;max-height:88px}
+.spre{font-size:13px;font-weight:600;line-height:1.25;white-space:normal}
+.srow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chip{white-space:nowrap}
 .tableWrap{flex:1;min-height:0;overflow:auto;border-top:1px solid #1f2430}
-table{width:100%;border-collapse:collapse}
-th,td{border-bottom:1px solid #1f2430;padding:10px 8px;text-align:left;vertical-align:top}
-th{font-size:12px;color:#cbd5e1;position:sticky;top:0;background:#0b0d12}
-td{font-size:13px;color:#eaeef7}
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #1f2430;padding:10px 8px;text-align:left;vertical-align:top}
+th{font-size:12px;color:#cbd5e1;position:sticky;top:0;background:#0b0d12}td{font-size:13px;color:#eaeef7}
 a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
-.small{font-size:12px;color:#9aa7bd;margin-top:10px;flex:0 0 auto}
 .ok{color:#86efac}.bad{color:#fca5a5}.unk{color:#fcd34d}
 @media (max-width:900px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #1f2430}th{position:static}}
-</style></head><body>
-<main>
-  <aside>
-    <div class="btnrow">
-      <button id="btnAll">Tümünü Seç</button>
-      <button id="btnNone">Temizle</button>
-      <button id="btnScan">Taramayı Başlat</button>
-    </div>
-    <div class="list" id="brandList"></div>
-  </aside>
-
-  <section>
-    <div class="topbar">
-      <div class="rightBtns">
-        <button id="btnExport" disabled>CSV Export</button>
-        <button id="btnClear" disabled>Sonuçları Temizle</button>
-      </div>
-      <div class="statusBox" id="status">Hazır.</div>
-    </div>
-
-    <div class="tableWrap">
-      <table>
-        <thead><tr>
-          <th>Sıra No</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>Stok</th><th>EAN</th>
-        </tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
-
-    <p class="small">Not: Ürün adına tıklayınca yeni sekmede ürün sayfası açılır.</p>
-  </section>
-</main>
-
-<script>
-const API_BASE="https://robot-workstation.tvkapora.workers.dev";
-const els={
-  list:document.getElementById("brandList"),
-  btnAll:document.getElementById("btnAll"),
-  btnNone:document.getElementById("btnNone"),
-  btnScan:document.getElementById("btnScan"),
-  btnExport:document.getElementById("btnExport"),
-  btnClear:document.getElementById("btnClear"),
-  status:document.getElementById("status"),
-  rows:document.getElementById("rows"),
+</style></head><body><main>
+<aside><div class=btnrow><button id=btnAll>Tümünü Seç</button><button id=btnNone>Temizle</button><button id=btnScan>Taramayı Başlat</button></div><div class=list id=brandList></div></aside>
+<section><div class=topbar><div class=rightBtns><button id=btnExport disabled>CSV Export</button><button id=btnClear disabled>Sonuçları Temizle</button></div><div class=statusBox id=status>Hazır.</div></div>
+<div class=tableWrap><table><thead><tr><th>Sıra No</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>Stok</th><th>EAN</th></tr></thead><tbody id=rows></tbody></table></div></section>
+</main><script>
+const API_BASE="https://robot-workstation.tvkapora.workers.dev",E={l:brandList,a:btnAll,n:btnNone,s:btnScan,x:btnExport,c:btnClear,t:status,r:rows};
+let B=[],S=new Set,R=[],N=0,Exp=new Map,Found=new Map,Rep=new Map;
+const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+const setScan=o=>{E.s.disabled=o;E.a.disabled=o;E.n.disabled=o;};
+const rowCls=st=>{const t=(st||"").toLowerCase();return t.includes("yok")?"bad":t.includes("bilinmiyor")?"unk":"ok"};
+const setText=s=>E.t.innerHTML=`<div class=spre>${esc(s).replaceAll("\n","<br>")}</div>`;
+function setDone(total,chosen){
+  const lines=sum(chosen).split("\n").filter(Boolean);
+  E.t.innerHTML=`<div class=srow><span class=chip>Bitti. Toplam ürün: ${total}</span><span class=chip>Kontrol (Bulunan/Beklenen):</span>${lines.map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div>`;
+}
+function render(){
+  E.l.innerHTML="";
+  [...B].sort((a,b)=>a.name.localeCompare(b.name,"tr",{sensitivity:"base"})).forEach((b,i)=>{
+    const lb=document.createElement("label");lb.className="brand";
+    const cb=document.createElement("input");cb.type="checkbox";cb.checked=S.has(b.id);
+    cb.addEventListener("change",()=>cb.checked?S.add(b.id):S.delete(b.id));
+    const m=document.createElement("div");m.className="meta";
+    const nm=document.createElement("div");nm.className="name";nm.textContent=`${i+1}) ${b.name} (${b.count})`;
+    m.appendChild(nm);lb.append(cb,m);E.l.appendChild(lb);
+  });
+}
+function add(r){
+  N++;const o={sıra:N,brand:r.brand||"",title:r.title||"Ürün",productCode:r.productCode||"",stock:r.stock||"",ean:r.ean||"",url:r.url||""};R.push(o);
+  const tr=document.createElement("tr"),tdNo=document.createElement("td");tdNo.textContent=String(o.sıra);
+  const tdB=document.createElement("td");tdB.textContent=o.brand;
+  const tdT=document.createElement("td");
+  if(o.url){const a=document.createElement("a");a.href=o.url;a.target="_blank";a.rel="noopener";a.textContent=o.title;tdT.appendChild(a)}else tdT.textContent=o.title;
+  const tdC=document.createElement("td");tdC.textContent=o.productCode;
+  const tdS=document.createElement("td");tdS.textContent=o.stock;tdS.className=rowCls(o.stock);
+  const tdE=document.createElement("td");tdE.textContent=o.ean;
+  tr.append(tdNo,tdB,tdT,tdC,tdS,tdE);E.r.appendChild(tr);
+  E.x.disabled=R.length===0;E.c.disabled=R.length===0;
+}
+function clear(){
+  R=[];N=0;E.r.innerHTML="";E.x.disabled=true;E.c.disabled=true;
+  Exp=new Map;Found=new Map;Rep=new Map;setText("Temizlendi.");
+}
+function csv(){
+  const D=";",v=x=>{const s=String(x??"");return(s.includes('"')||s.includes("\n")||s.includes("\r")||s.includes(D))?`"${s.replaceAll('"','""')}"`:s;};
+  const h=["Sıra No","Marka","Ürün Adı","Ürün Kodu","Stok","EAN"].map(v).join(D);
+  const L=R.map(r=>[r.sıra,r.brand,r.title,r.productCode,r.stock,r.ean].map(v).join(D));
+  const out="\ufeff"+[h,...L].join("\r\n"),blob=new Blob([out],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="compel-sonuc.csv";document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove();
+}
+async function load(){
+  setText("Markalar yükleniyor (compel.com.tr/markalar)...");const res=await fetch(`${API_BASE}/api/brands`,{cache:"no-store"});
+  if(!res.ok){const t=await res.text().catch(()=> "");throw new Error(`API /api/brands hata: ${res.status}\n${t}`)}
+  B=await res.json();render();setText(`Hazır. Marka sayısı: ${B.length}\nNot: Adetler compel.com.tr/markalar sayfasından çekilir.`);
+}
+const sum=chosen=>{
+  const L=[];for(const b of chosen){const e=Exp.get(b.name),f=Found.get(b.name)||0;
+    if(typeof e==="number"){L.push(`${b.name}: ${f}/${e} ${f===e?"✅":`⚠️ (fark ${f-e})`}`)}else L.push(`${b.name}: ${f}/?`);
+  }return L.join("\n");
 };
-let brands=[],selected=new Set(),results=[],rowNo=0;
-let expectedByBrand=new Map(),foundByBrand=new Map(),brandDoneReport=new Map();
-
-const setStatus=s=>els.status.textContent=s;
-const setScanning=on=>{els.btnScan.disabled=on;els.btnAll.disabled=on;els.btnNone.disabled=on;};
-const rowClass=stock=>{const t=(stock||"").toLowerCase();if(t.includes("yok"))return"bad";if(t.includes("bilinmiyor"))return"unk";return"ok";};
-
-function renderBrands(){
-  els.list.innerHTML="";
-  [...brands].sort((a,b)=>a.name.localeCompare(b.name,"tr",{sensitivity:"base"})).forEach((b,i)=>{
-    const label=document.createElement("label");label.className="brand";
-    const cb=document.createElement("input");cb.type="checkbox";cb.checked=selected.has(b.id);
-    cb.addEventListener("change",()=>cb.checked?selected.add(b.id):selected.delete(b.id));
-    const meta=document.createElement("div");meta.className="meta";
-    const name=document.createElement("div");name.className="name";name.textContent=`${i+1}) ${b.name} (${b.count})`;
-    meta.appendChild(name);label.appendChild(cb);label.appendChild(meta);els.list.appendChild(label);
-  });
-}
-
-function addResult(r){
-  rowNo++;
-  const out={sıra:rowNo,brand:r.brand||"",title:r.title||"Ürün",productCode:r.productCode||"",stock:r.stock||"",ean:r.ean||"",url:r.url||""};
-  results.push(out);
-
-  const tr=document.createElement("tr");
-  const tdNo=document.createElement("td");tdNo.textContent=String(out.sıra);
-  const tdBrand=document.createElement("td");tdBrand.textContent=out.brand;
-
-  const tdTitle=document.createElement("td");
-  if(out.url){const a=document.createElement("a");a.href=out.url;a.target="_blank";a.rel="noopener";a.textContent=out.title;tdTitle.appendChild(a);}
-  else tdTitle.textContent=out.title;
-
-  const tdCode=document.createElement("td");tdCode.textContent=out.productCode;
-  const tdStock=document.createElement("td");tdStock.textContent=out.stock;tdStock.className=rowClass(out.stock);
-  const tdEan=document.createElement("td");tdEan.textContent=out.ean;
-
-  tr.append(tdNo,tdBrand,tdTitle,tdCode,tdStock,tdEan);
-  els.rows.appendChild(tr);
-
-  els.btnExport.disabled=results.length===0;
-  els.btnClear.disabled=results.length===0;
-}
-
-function clearResults(){
-  results=[];rowNo=0;els.rows.innerHTML="";
-  els.btnExport.disabled=true;els.btnClear.disabled=true;
-  expectedByBrand=new Map();foundByBrand=new Map();brandDoneReport=new Map();
-  setStatus("Temizlendi.");
-}
-
-function downloadCsv(){
-  const D=";";
-  const v=x=>{const s=String(x??"");const q=s.includes('"')||s.includes("\n")||s.includes("\r")||s.includes(D);return q?`"${s.replaceAll('"','""')}"`:s;};
-  const header=["Sıra No","Marka","Ürün Adı","Ürün Kodu","Stok","EAN"].map(v).join(D);
-  const lines=results.map(r=>[r.sıra,r.brand,r.title,r.productCode,r.stock,r.ean].map(v).join(D));
-  const csv="\ufeff"+[header,...lines].join("\r\n");
-  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="compel-sonuc.csv";
-  document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove();
-}
-
-async function loadBrands(){
-  setStatus("Markalar yükleniyor (compel.com.tr/markalar)...");
-  const res=await fetch(`${API_BASE}/api/brands`,{cache:"no-store"});
-  if(!res.ok){const t=await res.text().catch(()=> "");throw new Error(`API /api/brands hata: ${res.status}\n${t}`);}
-  brands=await res.json();renderBrands();
-  setStatus(`Hazır. Marka sayısı: ${brands.length}\nNot: Adetler compel.com.tr/markalar sayfasından çekilir.`);
-}
-
-function summarizeChecks(chosen){
-  const lines=[];
-  for(const b of chosen){
-    const exp=expectedByBrand.get(b.name);
-    const found=foundByBrand.get(b.name)||0;
-    if(typeof exp==="number"){const ok=found===exp;lines.push(`${b.name}: ${found}/${exp} ${ok?"✅":`⚠️ (fark ${found-exp})`}`);}
-    else lines.push(`${b.name}: ${found}/?`);
-  }
-  return lines.join("\n");
-}
-
 async function scan(){
-  if(selected.size===0){setStatus("En az 1 marka seç.");return;}
-  clearResults();setScanning(true);setStatus("Başladı...");
-
-  const chosen=brands.filter(b=>selected.has(b.id));
-  expectedByBrand=new Map(chosen.map(b=>[b.name,Number(b.count)]).filter(x=>Number.isFinite(x[1])));
-
-  const res=await fetch(`${API_BASE}/api/scan`,{
-    method:"POST",headers:{"content-type":"application/json"},
-    body:JSON.stringify({brands:chosen}),
-  });
-  if(!res.ok){const t=await res.text().catch(()=> "");setStatus(`Hata: ${res.status}\n${t}`);setScanning(false);return;}
-  const reader=res.body?.getReader?.();if(!reader){setStatus("Tarama bitti (stream yok).");setScanning(false);return;}
-
+  if(!S.size){setText("En az 1 marka seç.");return}
+  clear();setScan(true);setText("Başladı...");
+  const chosen=B.filter(b=>S.has(b.id));Exp=new Map(chosen.map(b=>[b.name,Number(b.count)]).filter(x=>Number.isFinite(x[1])));
+  const res=await fetch(`${API_BASE}/api/scan`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({brands:chosen})});
+  if(!res.ok){const t=await res.text().catch(()=> "");setText(`Hata: ${res.status}\n${t}`);setScan(false);return}
+  const rd=res.body?.getReader?.();if(!rd){setText("Tarama bitti (stream yok).");setScan(false);return}
   const dec=new TextDecoder();let buf="",total=0;
   while(true){
-    const {value,done}=await reader.read();if(done)break;
-    buf+=dec.decode(value,{stream:true});
-    let idx;
-    while((idx=buf.indexOf("\n"))>=0){
-      const line=buf.slice(0,idx).trim();buf=buf.slice(idx+1);
-      if(!line)continue;
-      const msg=JSON.parse(line);
-
-      if(msg.type==="brandStart"||msg.type==="page"){
-        const exp=expectedByBrand.get(msg.brand);
-        const found=foundByBrand.get(msg.brand)||0;
-        setStatus(`Taranıyor: ${msg.brand} (sayfa ${msg.page}/${msg.pages})\nBulunan/Beklenen: ${found}/${(typeof exp==="number"?exp:"?")}`);
-      } else if(msg.type==="product"){
-        total++;
-        const bn=msg.data?.brand||"";if(bn)foundByBrand.set(bn,(foundByBrand.get(bn)||0)+1);
-        addResult(msg.data);
-      } else if(msg.type==="brandDone"){
-        brandDoneReport.set(msg.brand,{expected:msg.expected??null,found:msg.found??0});
-        const exp=typeof msg.expected==="number"?msg.expected:expectedByBrand.get(msg.brand);
-        const found=typeof msg.found==="number"?msg.found:(foundByBrand.get(msg.brand)||0);
-        const ok=typeof exp==="number"?found===exp:null;
-        setStatus(`${msg.brand} bitti.\nBulunan/Beklenen: ${found}/${(typeof exp==="number"?exp:"?")} ${ok===true?"✅":ok===false?"⚠️":""}\n\nGenel Toplam: ${total}\n\n${summarizeChecks(chosen)}`);
-      } else if(msg.type==="done"){
-        setStatus(`Bitti. Toplam ürün: ${total}\n\nKontrol (Bulunan/Beklenen):\n${summarizeChecks(chosen)}`);
-      } else if(msg.type==="error"){
-        setStatus(`Hata: ${msg.message}`);
-      }
+    const {value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    let i;while((i=buf.indexOf("\n"))>=0){
+      const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line)continue;const m=JSON.parse(line);
+      if(m.type==="brandStart"||m.type==="page"){
+        const e=Exp.get(m.brand),f=Found.get(m.brand)||0;
+        setText(`Taranıyor: ${m.brand} (sayfa ${m.page}/${m.pages})\nBulunan/Beklenen: ${f}/${(typeof e==="number"?e:"?")}`);
+      } else if(m.type==="product"){
+        total++;const bn=m.data?.brand||"";if(bn)Found.set(bn,(Found.get(bn)||0)+1);add(m.data);
+      } else if(m.type==="brandDone"){
+        Rep.set(m.brand,{expected:m.expected??null,found:m.found??0});
+        const e=typeof m.expected==="number"?m.expected:Exp.get(m.brand);
+        const f=typeof m.found==="number"?m.found:(Found.get(m.brand)||0);
+        const ok=typeof e==="number"?f===e:null;
+        E.t.innerHTML=`<div class=srow><span class=chip>${esc(m.brand)} bitti.</span><span class=chip>Bulunan/Beklenen: ${f}/${(typeof e==="number"?e:"?")} ${ok===true?"✅":ok===false?"⚠️":""}</span><span class=chip>Genel Toplam: ${total}</span></div><div class=spre style="margin-top:6px">${esc(sum(chosen)).replaceAll("\n","<br>")}</div>`;
+      } else if(m.type==="done"){setDone(total,chosen)}
+      else if(m.type==="error"){setText(`Hata: ${m.message}`)}
     }
   }
-  setScanning(false);
+  setScan(false);
 }
-
-els.btnAll.addEventListener("click",()=>{brands.forEach(b=>selected.add(b.id));renderBrands();});
-els.btnNone.addEventListener("click",()=>{selected.clear();renderBrands();});
-els.btnScan.addEventListener("click",scan);
-els.btnExport.addEventListener("click",downloadCsv);
-els.btnClear.addEventListener("click",clearResults);
-
-loadBrands().catch(e=>setStatus("Markalar yüklenemedi:\n"+(e?.message||e)));
+E.a.addEventListener("click",()=>{B.forEach(b=>S.add(b.id));render()});
+E.n.addEventListener("click",()=>{S.clear();render()});
+E.s.addEventListener("click",scan);
+E.x.addEventListener("click",csv);
+E.c.addEventListener("click",clear);
+load().catch(e=>setText("Markalar yüklenemedi:\n"+(e?.message||e)));
 </script></body></html>
