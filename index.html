@@ -11,8 +11,8 @@ button:hover{background:#1f2a44;border-color:#6b7da6}
 button:disabled{opacity:.6;cursor:not-allowed}
 button:disabled:hover{background:#111827;border-color:#2a3140}
 
-/* ✅ Bilgi kutusu: 2 satır + bir yarım satır daha */
-.ibox{padding:8px 10px;margin:0 0 10px;height:50px;overflow:auto;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+/* ✅ bilgi kutusu: 1 satır kısaltıldı */
+.ibox{padding:8px 10px;margin:0 0 10px;height:34px;overflow:auto;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
 .chip{padding:2px 6px;border:1px solid #2a3140;border-radius:999px;background:#0f1320;white-space:nowrap;font-weight:600;font-size:14px}
 
 .list{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px;align-content:start}
@@ -30,9 +30,20 @@ th{position:sticky;top:0;background:#0b0d12;font-size:16px;font-weight:800;color
 td{font-size:16px;font-weight:400}
 a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
 .ok{color:#86efac}.bad{color:#fca5a5}.unk{color:#fcd34d}
+
+/* ✅ modal/toast */
+.ovl{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:9999}
+.modal{background:#111827;border:1px solid #2a3140;border-radius:12px;padding:14px 16px;max-width:560px;width:calc(100% - 40px);text-align:center}
+.mtxt{font-size:14px;font-weight:700;line-height:1.35}
+.mbtns{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+
 @media (max-width:1100px){main{grid-template-columns:1fr}.list{grid-template-columns:1fr}}
 @media (max-width:900px){aside{border-right:0;border-bottom:1px solid #1f2430}th{position:static}}
-</style></head><body><main>
+</style></head><body>
+
+<div class="ovl" id="ovl"><div class="modal" id="modal"></div></div>
+
+<main>
 <aside>
   <div class="btnrow">
     <button id="btnAll">Tümünü Seç</button>
@@ -53,12 +64,16 @@ a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
     </tr></thead><tbody id="rows"></tbody></table>
   </div>
 </section>
-</main><script>
+</main>
+
+<script>
 const API_BASE="https://robot-workstation.tvkapora.workers.dev",$=id=>document.getElementById(id),
-E={l:$("brandList"),a:$("btnAll"),n:$("btnNone"),s:$("btnScan"),p:$("btnStop"),x:$("btnExport"),i:$("info"),r:$("rows")};
+E={l:$("brandList"),a:$("btnAll"),n:$("btnNone"),s:$("btnScan"),p:$("btnStop"),x:$("btnExport"),i:$("info"),r:$("rows"),ovl:$("ovl"),mdl:$("modal")};
 
 let B=[],S=new Set,R=[],N=0,Exp=new Map,Found=new Map,abortCtrl=null,scanning=false;
+
 const DISP=new Map([["Marantz Professional","Marantz Prof."],["Rupert Neve Designs","Rupert Neve D."]]),dn=n=>DISP.get(n)||n;
+const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
 
 function info(s){
   E.i.innerHTML="";
@@ -69,6 +84,30 @@ function info(s){
     sp.textContent=t;
     E.i.appendChild(sp);
   }
+}
+
+function showToast(msg, ms=2200){
+  E.mdl.innerHTML=`<div class="mtxt">${esc(msg)}</div>`;
+  E.ovl.style.display="flex";
+  const close=()=>{E.ovl.style.display="none";E.ovl.onclick=null;};
+  E.ovl.onclick=close;
+  window.setTimeout(close, ms);
+}
+
+function confirmModal(msg){
+  return new Promise(resolve=>{
+    E.mdl.innerHTML=
+      `<div class="mtxt">${esc(msg)}</div>
+       <div class="mbtns">
+         <button id="mYes">Evet</button>
+         <button id="mNo">Hayır</button>
+       </div>`;
+    E.ovl.style.display="flex";
+    const done=v=>{E.ovl.style.display="none";E.ovl.onclick=null;resolve(v);};
+    $("mYes").onclick=()=>done(true);
+    $("mNo").onclick=()=>done(false);
+    E.ovl.onclick=(e)=>{ if(e.target===E.ovl) done(false); };
+  });
 }
 
 const setScanState=on=>{
@@ -86,7 +125,7 @@ function render(){
   [...B].sort((a,b)=>a.name.localeCompare(b.name,"tr",{sensitivity:"base"})).forEach((b,i)=>{
     const d=document.createElement("div");
     d.className="brand"+(S.has(b.id)?" sel":""); d.tabIndex=0; d.dataset.id=b.id;
-    d.innerHTML=`<div class=row><span class=idx>${i+1})</span><span class=nm title="${dn(b.name)}">${dn(b.name)}</span><span class=ct>(${b.count})</span></div>`;
+    d.innerHTML=`<div class="row"><span class="idx">${i+1})</span><span class="nm" title="${esc(dn(b.name))}">${esc(dn(b.name))}</span><span class="ct">(${esc(b.count)})</span></div>`;
     E.l.appendChild(d);
   });
 }
@@ -100,7 +139,7 @@ function add(r){
   const o={sıra:N,brand:r.brand||"",title:r.title||"Ürün",productCode:r.productCode||"",stock:r.stock||"",ean:r.ean||"",url:r.url||""};
   R.push(o);
   const tr=document.createElement("tr");
-  tr.innerHTML=`<td>${o.sıra}</td><td>${o.brand}</td><td></td><td>${o.productCode}</td><td class="${rowCls(o.stock)}">${o.stock}</td><td>${o.ean}</td>`;
+  tr.innerHTML=`<td>${esc(o.sıra)}</td><td>${esc(o.brand)}</td><td></td><td>${esc(o.productCode)}</td><td class="${rowCls(o.stock)}">${esc(o.stock)}</td><td>${esc(o.ean)}</td>`;
   const tdT=tr.children[2];
   if(o.url){const a=document.createElement("a");a.href=o.url;a.target="_blank";a.rel="noopener";a.textContent=o.title;tdT.appendChild(a)}
   else tdT.textContent=o.title;
@@ -130,9 +169,15 @@ async function load(){
   info(`Hazır. Marka sayısı: ${B.length}`);
 }
 
-async function scan(){
+async function scan(doConfirm=true){
   if(scanning) return;
   if(!S.size){info("En az 1 marka seç.");return;}
+
+  if(doConfirm && S.size===B.length){
+    const ok=await confirmModal("Tüm markaları taramak üzeresiniz. Emin misiniz?");
+    if(!ok) return;
+  }
+
   R=[];N=0;E.r.innerHTML="";Found=new Map;
   setScanState(true); info("Başladı...");
 
@@ -187,9 +232,12 @@ async function scan(){
   }
 }
 
-E.a.onclick=()=>{B.forEach(b=>S.add(b.id));render()};
+E.a.onclick=()=>{
+  B.forEach(b=>S.add(b.id)); render();
+  showToast("Gün içerisinde kullanımı önerilmez.");
+};
 E.n.onclick=clearAll;
-E.s.onclick=scan;
+E.s.onclick=()=>scan(true);
 E.p.onclick=()=>{if(scanning && abortCtrl) abortCtrl.abort();};
 E.x.onclick=csv;
 
