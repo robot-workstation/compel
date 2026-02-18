@@ -11,7 +11,7 @@
     body {
       margin:0;
       height: 100vh;
-      overflow: hidden;               /* ✅ sayfa komple scroll yok */
+      overflow: hidden;
       display:flex;
       flex-direction:column;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
@@ -77,7 +77,7 @@
     .list {
       flex: 1 1 auto;
       min-height: 0;
-      overflow: auto;                 /* ✅ sadece marka listesi scroll */
+      overflow: auto;
       display:flex;
       flex-direction:column;
       gap:6px;
@@ -93,6 +93,7 @@
 
     .meta { display:flex; flex-direction:column; line-height:1.15; }
     .meta .name { font-weight:800; }
+    .meta .sub { font-size:12px; color:#9aa7bd; margin-top:2px; }
 
     .status { font-size:12px; color:#9aa7bd; margin:6px 0 10px 0; white-space:pre-wrap; flex:0 0 auto; }
 
@@ -101,7 +102,7 @@
     .tableWrap {
       flex: 1 1 auto;
       min-height: 0;
-      overflow: auto;                 /* ✅ sonuçlar kendi alanında scroll */
+      overflow: auto;
       border-top: 1px solid #1f2430;
     }
 
@@ -176,6 +177,7 @@
 </main>
 
 <script>
+  // ✅ Worker URL
   const API_BASE = "https://robot-workstation.tvkapora.workers.dev";
 
   const els = {
@@ -196,14 +198,10 @@
   let scanning = false;
   let rowNo = 0;
 
-  function escapeHtml(s){
-    return String(s ?? '')
-      .replaceAll('&','&amp;')
-      .replaceAll('<','&lt;')
-      .replaceAll('>','&gt;')
-      .replaceAll('"','&quot;')
-      .replaceAll("'","&#39;");
-  }
+  // kontrol için
+  let expectedByBrand = new Map(); // name -> expected count (markalar sayfası)
+  let foundByBrand = new Map();    // name -> found count (scan)
+  let brandDoneReport = new Map(); // name -> {expected, found}
 
   function updateSelCount(){
     els.selCount.textContent = `${selected.size}/${brands.length}`;
@@ -227,10 +225,17 @@
 
       const meta = document.createElement('div');
       meta.className = "meta";
+
       const name = document.createElement('div');
       name.className = "name";
       name.textContent = `${idx+1}) ${b.name} (${b.count})`;
+
+      const sub = document.createElement('div');
+      sub.className = "sub";
+      sub.textContent = `Kaynak: compel.com.tr/markalar`;
+
       meta.appendChild(name);
+      meta.appendChild(sub);
 
       label.appendChild(cb);
       label.appendChild(meta);
@@ -319,18 +324,20 @@
     els.rows.innerHTML = '';
     els.btnExport.disabled = true;
     els.btnClear.disabled = true;
+
+    expectedByBrand = new Map();
+    foundByBrand = new Map();
+    brandDoneReport = new Map();
+
     setStatus('Temizlendi.');
   }
 
-  // ✅ CSV Export (TXT yerine)
+  // ✅ CSV Export (Excel uyumlu)
   function downloadCsv(){
-    // Türkiye/Excel uyumu için ayraç olarak ; kullanıldı.
-    // İstersen "," yapmak için CSV_DELIM değerini değiştir.
     const CSV_DELIM = ';';
 
     const toCsvValue = (v) => {
       const s = String(v ?? '');
-      // Ayraç, tırnak, satır sonu varsa RFC4180 uyumlu şekilde tırnakla ve kaçır.
       const needsQuote = s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes(CSV_DELIM);
       return needsQuote ? `"${s.replaceAll('"','""')}"` : s;
     };
@@ -347,7 +354,6 @@
       r.ean
     ].map(toCsvValue).join(CSV_DELIM)));
 
-    // Excel'in Türkçe karakterleri düzgün açması için UTF-8 BOM ekledik.
     const csv = '\ufeff' + [header, ...lines].join('\r\n');
 
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
@@ -361,7 +367,7 @@
   }
 
   async function loadBrands(){
-    setStatus("Markalar yükleniyor...");
+    setStatus("Markalar yükleniyor (compel.com.tr/markalar)...");
     const res = await fetch(`${API_BASE}/api/brands`, { cache: "no-store" });
     if (!res.ok) {
       const t = await res.text().catch(()=> "");
@@ -369,7 +375,23 @@
     }
     brands = await res.json();
     renderBrands();
-    setStatus(`Hazır. Marka sayısı: ${brands.length}`);
+    setStatus(`Hazır. Marka sayısı: ${brands.length}\nNot: Marka adetleri compel.com.tr/markalar sayfasından Worker tarafından çekilir.`);
+  }
+
+  function summarizeChecks(chosenBrands){
+    const lines = [];
+    for (const b of chosenBrands) {
+      const exp = expectedByBrand.get(b.name);
+      const found = foundByBrand.get(b.name) || 0;
+      if (typeof exp === "number") {
+        const ok = found === exp;
+        const diff = found - exp;
+        lines.push(`${b.name}: ${found}/${exp} ${ok ? "✅" : ("⚠️ (fark " + diff + ")")}`);
+      } else {
+        lines.push(`${b.name}: ${found}/?`);
+      }
+    }
+    return lines.join('\n');
   }
 
   async function scan(){
@@ -380,6 +402,10 @@
     setStatus('Başladı...');
 
     const chosen = brands.filter(b => selected.has(b.id));
+
+    // ✅ beklenen sayılar (markalar sayfasından gelen count)
+    expectedByBrand = new Map(chosen.map(b => [b.name, Number(b.count)]).filter(x => Number.isFinite(x[1])));
+
     const res = await fetch(`${API_BASE}/api/scan`, {
       method: 'POST',
       headers: {'content-type':'application/json'},
@@ -418,14 +444,37 @@
         const msg = JSON.parse(line);
 
         if (msg.type === 'brandStart') {
-          setStatus(`Taranıyor: ${msg.brand} (sayfa ${msg.page}/${msg.pages})`);
+          const exp = expectedByBrand.get(msg.brand);
+          const found = foundByBrand.get(msg.brand) || 0;
+          setStatus(`Taranıyor: ${msg.brand} (sayfa ${msg.page}/${msg.pages})\nBulunan/Beklenen: ${found}/${(typeof exp === "number" ? exp : "?")}`);
         } else if (msg.type === 'page') {
-          setStatus(`Taranıyor: ${msg.brand} (sayfa ${msg.page}/${msg.pages})`);
+          const exp = expectedByBrand.get(msg.brand);
+          const found = foundByBrand.get(msg.brand) || 0;
+          setStatus(`Taranıyor: ${msg.brand} (sayfa ${msg.page}/${msg.pages})\nBulunan/Beklenen: ${found}/${(typeof exp === "number" ? exp : "?")}`);
         } else if (msg.type === 'product') {
           totalProducts++;
+          const bname = msg.data?.brand || '';
+          if (bname) foundByBrand.set(bname, (foundByBrand.get(bname) || 0) + 1);
           addResult(msg.data);
+        } else if (msg.type === 'brandDone') {
+          // Worker tarafı “bu marka bitti” raporu
+          brandDoneReport.set(msg.brand, { expected: msg.expected ?? null, found: msg.found ?? 0 });
+
+          const exp = (typeof msg.expected === "number") ? msg.expected : expectedByBrand.get(msg.brand);
+          const found = (typeof msg.found === "number") ? msg.found : (foundByBrand.get(msg.brand) || 0);
+          const ok = (typeof exp === "number") ? (found === exp) : null;
+
+          setStatus(
+            `${msg.brand} bitti.\nBulunan/Beklenen: ${found}/${(typeof exp === "number" ? exp : "?")} ${ok === true ? "✅" : (ok === false ? "⚠️" : "")}\n\n` +
+            `Genel Toplam: ${totalProducts}\n\n` +
+            summarizeChecks(chosen)
+          );
         } else if (msg.type === 'done') {
-          setStatus(`Bitti. Toplam ürün: ${totalProducts}`);
+          setStatus(
+            `Bitti. Toplam ürün: ${totalProducts}\n\n` +
+            `Kontrol (Bulunan/Beklenen):\n` +
+            summarizeChecks(chosen)
+          );
         } else if (msg.type === 'error') {
           setStatus(`Hata: ${msg.message}`);
         }
