@@ -6,13 +6,17 @@ section{padding:8px;overflow:hidden;display:flex;flex-direction:column;min-heigh
 
 .btnrow{display:flex;gap:8px;margin:0 0 8px;flex-wrap:wrap;justify-content:center;flex:0 0 auto}
 button,.ibox{background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;font-weight:600;font-size:13px}
-button{padding:8px 10px;cursor:pointer}button:hover{border-color:#3a465f}button:disabled{opacity:.6;cursor:not-allowed}
+button{padding:8px 10px;cursor:pointer}
+button:hover{background:#1f2a44;border-color:#6b7da6}
+button:disabled{opacity:.6;cursor:not-allowed}
+button:disabled:hover{background:#111827;border-color:#2a3140}
 
-.ibox{position:relative;padding:8px 10px;margin:0 0 10px;white-space:pre-wrap;overflow:auto;height:64px;line-height:1.25;font-size:13px}
-.ibox::after{content:"Bilgi ekranı";position:absolute;right:10px;bottom:8px;opacity:.22;font-weight:700;pointer-events:none}
+/* ✅ Bilgi kutusu: 2 satır yüksekliğinde + font 1 birim büyük */
+.ibox{padding:8px 10px;margin:0 0 10px;height:34px;overflow:auto;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.chip{padding:2px 6px;border:1px solid #2a3140;border-radius:999px;background:#0f1320;white-space:nowrap;font-weight:600;font-size:14px}
 
 .list{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px;align-content:start}
-.brand{display:flex;align-items:center;padding:7px 10px;border:1px solid #1f2430;border-radius:12px;background:#0f1320;cursor:pointer;user-select:none;width:100%;box-sizing:border-box}
+.brand{display:flex;align-items:center;padding:5px 10px;border:1px solid #1f2430;border-radius:12px;background:#0f1320;cursor:pointer;user-select:none;width:100%;box-sizing:border-box}
 .brand:hover{border-color:#2a3140}.brand.sel{background:#1f2a44;border-color:#6b7da6}
 .row{display:grid;grid-template-columns:32px 1fr auto;gap:2px;align-items:center;min-width:0}
 .idx{font-variant-numeric:tabular-nums;opacity:.9;white-space:nowrap;margin-right:6px}
@@ -22,11 +26,7 @@ button{padding:8px 10px;cursor:pointer}button:hover{border-color:#3a465f}button:
 .tableWrap{flex:1;min-height:0;overflow:auto;border-top:1px solid #1f2430}
 table{width:100%;border-collapse:collapse}
 th,td{border-bottom:1px solid #1f2430;padding:10px 8px;text-align:left;vertical-align:top}
-th{
-  position:sticky;top:0;background:#0b0d12;
-  font-size:16px;font-weight:800; /* ✅ markalarla aynı font + bold */
-  color:#eaeef7;
-}
+th{position:sticky;top:0;background:#0b0d12;font-size:16px;font-weight:800;color:#eaeef7}
 td{font-size:16px;font-weight:400}
 a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
 .ok{color:#86efac}.bad{color:#fca5a5}.unk{color:#fcd34d}
@@ -41,6 +41,7 @@ a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
     <button id="btnStop" disabled>Durdur</button>
     <button id="btnExport" disabled>CSV Çıktı</button>
   </div>
+
   <div class="ibox" id="info"></div>
   <div class="list" id="brandList"></div>
 </aside>
@@ -59,7 +60,17 @@ E={l:$("brandList"),a:$("btnAll"),n:$("btnNone"),s:$("btnScan"),p:$("btnStop"),x
 let B=[],S=new Set,R=[],N=0,Exp=new Map,Found=new Map,abortCtrl=null,scanning=false;
 const DISP=new Map([["Marantz Professional","Marantz Prof."],["Rupert Neve Designs","Rupert Neve D."]]),dn=n=>DISP.get(n)||n;
 const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
-const info=s=>{E.i.textContent=s||""};
+
+function info(s){
+  E.i.innerHTML="";
+  const lines=String(s??"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  for(const t of lines){
+    const sp=document.createElement("span");
+    sp.className="chip";
+    sp.textContent=t;
+    E.i.appendChild(sp);
+  }
+}
 
 const setScanState=on=>{
   scanning=on;
