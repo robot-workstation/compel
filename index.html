@@ -6,36 +6,49 @@ section{padding:8px 12px;overflow:hidden;display:flex;flex-direction:column;min-
 .btnrow{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap;flex:0 0 auto}
 button,.statusBox{background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;font-weight:600;font-size:13px}
 button{padding:8px 10px;cursor:pointer}button:hover{border-color:#3a465f}button:disabled{opacity:.6;cursor:not-allowed}
-.list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:3px}
-label.brand{display:flex;gap:7px;align-items:center;padding:5px 7px;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
-label.brand:hover{border-color:#2a3140}label.brand input{width:17px;height:17px}
+
+/* ✅ 2 sütun marka listesi */
+.list{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start}
+label.brand{display:flex;gap:7px;align-items:center;padding:5px 7px;border:1px solid #1f2430;border-radius:12px;background:#0f1320;min-width:0}
+label.brand:hover{border-color:#2a3140}label.brand input{width:17px;height:17px;flex:0 0 auto}
+.meta{min-width:0}
+.nameRow{display:grid;grid-template-columns:26px 1fr auto;gap:6px;align-items:baseline;min-width:0}
+.nameRow .idx{font-variant-numeric:tabular-nums;opacity:.9}
+.nameRow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nameRow .ct{opacity:.9}
 .meta .name{font-weight:800;font-size:12px;line-height:1.12}
+
 .topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin-bottom:8px;flex:0 0 auto}
 .rightBtns{display:flex;gap:8px;flex-wrap:wrap}
 .statusBox{padding:8px 10px;overflow:auto;flex:1 1 360px;max-height:88px}
 .spre{font-size:13px;font-weight:600;line-height:1.25;white-space:normal}
 .srow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .chip{white-space:nowrap}
+
 .tableWrap{flex:1;min-height:0;overflow:auto;border-top:1px solid #1f2430}
 table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #1f2430;padding:10px 8px;text-align:left;vertical-align:top}
 th{font-size:12px;color:#cbd5e1;position:sticky;top:0;background:#0b0d12}td{font-size:13px;color:#eaeef7}
 a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
 .ok{color:#86efac}.bad{color:#fca5a5}.unk{color:#fcd34d}
 @media (max-width:900px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #1f2430}th{position:static}}
+@media (max-width:520px){.list{grid-template-columns:1fr}}
 </style></head><body><main>
 <aside><div class=btnrow><button id=btnAll>Tümünü Seç</button><button id=btnNone>Temizle</button><button id=btnScan>Taramayı Başlat</button></div><div class=list id=brandList></div></aside>
 <section><div class=topbar><div class=rightBtns><button id=btnExport disabled>CSV Export</button><button id=btnClear disabled>Sonuçları Temizle</button></div><div class=statusBox id=status>Hazır.</div></div>
 <div class=tableWrap><table><thead><tr><th>Sıra No</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>Stok</th><th>EAN</th></tr></thead><tbody id=rows></tbody></table></div></section>
 </main><script>
-const API_BASE="https://robot-workstation.tvkapora.workers.dev",E={l:brandList,a:btnAll,n:btnNone,s:btnScan,x:btnExport,c:btnClear,t:status,r:rows};
+const API_BASE="https://robot-workstation.tvkapora.workers.dev",$=id=>document.getElementById(id),
+E={l:$("brandList"),a:$("btnAll"),n:$("btnNone"),s:$("btnScan"),x:$("btnExport"),c:$("btnClear"),t:$("status"),r:$("rows")};
 let B=[],S=new Set,R=[],N=0,Exp=new Map,Found=new Map,Rep=new Map;
 const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
 const setScan=o=>{E.s.disabled=o;E.a.disabled=o;E.n.disabled=o;};
 const rowCls=st=>{const t=(st||"").toLowerCase();return t.includes("yok")?"bad":t.includes("bilinmiyor")?"unk":"ok"};
 const setText=s=>E.t.innerHTML=`<div class=spre>${esc(s).replaceAll("\n","<br>")}</div>`;
+const sum=chosen=>{const L=[];for(const b of chosen){const e=Exp.get(b.name),f=Found.get(b.name)||0;
+  L.push(typeof e==="number"?`${b.name}: ${f}/${e} ${f===e?"✅":`⚠️ (fark ${f-e})`}`:`${b.name}: ${f}/?`)}return L.join("\n")};
 function setDone(total,chosen){
   const lines=sum(chosen).split("\n").filter(Boolean);
-  E.t.innerHTML=`<div class=srow><span class=chip>Bitti. Toplam ürün: ${total}</span><span class=chip>Kontrol (Bulunan/Beklenen):</span>${lines.map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div>`;
+  E.t.innerHTML=`<div class=srow><span class=chip>Bitti. Toplam ürün: ${total}</span><span class=chip>Kontrol (Bulunan/Beklenen):</span>${lines.map(x=>`<span class=chip>${esc(x)}</span>`).join("")}</div>`;
 }
 function render(){
   E.l.innerHTML="";
@@ -43,9 +56,14 @@ function render(){
     const lb=document.createElement("label");lb.className="brand";
     const cb=document.createElement("input");cb.type="checkbox";cb.checked=S.has(b.id);
     cb.addEventListener("change",()=>cb.checked?S.add(b.id):S.delete(b.id));
-    const m=document.createElement("div");m.className="meta";
-    const nm=document.createElement("div");nm.className="name";nm.textContent=`${i+1}) ${b.name} (${b.count})`;
-    m.appendChild(nm);lb.append(cb,m);E.l.appendChild(lb);
+    const meta=document.createElement("div");meta.className="meta";
+    const nm=document.createElement("div");nm.className="name";
+    const row=document.createElement("div");row.className="nameRow";
+    const s1=document.createElement("span");s1.className="idx";s1.textContent=`${i+1})`;
+    const s2=document.createElement("span");s2.className="nm";s2.textContent=b.name;
+    const s3=document.createElement("span");s3.className="ct";s3.textContent=`(${b.count})`;
+    row.append(s1,s2,s3);nm.appendChild(row);meta.appendChild(nm);
+    lb.append(cb,meta);E.l.appendChild(lb);
   });
 }
 function add(r){
@@ -76,11 +94,6 @@ async function load(){
   if(!res.ok){const t=await res.text().catch(()=> "");throw new Error(`API /api/brands hata: ${res.status}\n${t}`)}
   B=await res.json();render();setText(`Hazır. Marka sayısı: ${B.length}\nNot: Adetler compel.com.tr/markalar sayfasından çekilir.`);
 }
-const sum=chosen=>{
-  const L=[];for(const b of chosen){const e=Exp.get(b.name),f=Found.get(b.name)||0;
-    if(typeof e==="number"){L.push(`${b.name}: ${f}/${e} ${f===e?"✅":`⚠️ (fark ${f-e})`}`)}else L.push(`${b.name}: ${f}/?`);
-  }return L.join("\n");
-};
 async function scan(){
   if(!S.size){setText("En az 1 marka seç.");return}
   clear();setScan(true);setText("Başladı...");
