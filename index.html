@@ -1,122 +1,187 @@
-<!doctype html><html lang=tr><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Compel Marka Tarayıcı</title><style>
-:root{color-scheme:dark}html,body{height:100%}body{margin:0;height:100vh;overflow:hidden;display:flex;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b0d12;color:#eaeef7}
-main{flex:1;overflow:hidden;display:grid;grid-template-columns:560px 1fr;min-height:0}
-aside{border-right:1px solid #1f2430;padding:8px 12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-section{padding:8px 12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.btnrow{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap;flex:0 0 auto}
-button,.statusBox{background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;font-weight:600;font-size:13px}
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Compel Marka Tarayıcı</title><style>
+:root{color-scheme:dark}html,body{height:100%}body{margin:0;height:100vh;overflow:hidden;display:flex;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b0d12;color:#eaeef7}
+main{flex:1;overflow:hidden;display:grid;grid-template-columns:480px 1fr;min-height:0}
+aside{border-right:1px solid #1f2430;padding:8px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+section{padding:8px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+
+.btnrow{display:flex;gap:8px;margin:0 0 8px;flex-wrap:wrap;justify-content:center;flex:0 0 auto}
+button,.ibox{background:#111827;color:#eaeef7;border:1px solid #2a3140;border-radius:10px;font-weight:600;font-size:13px}
 button{padding:8px 10px;cursor:pointer}button:hover{border-color:#3a465f}button:disabled{opacity:.6;cursor:not-allowed}
 
-/* ✅ 2 sütun + minimum hücre genişliği */
-.list{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:6px;align-content:start}
+.ibox{position:relative;padding:8px 10px;margin:0 0 10px;white-space:pre-wrap;overflow:auto;height:64px;line-height:1.25;font-size:13px}
+.ibox::after{content:"Bilgi ekranı";position:absolute;right:10px;bottom:8px;opacity:.22;font-weight:700;pointer-events:none}
 
-/* ✅ kart biraz daha geniş/rahat, çok satır destek */
-label.brand{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border:1px solid #1f2430;border-radius:12px;background:#0f1320}
-label.brand:hover{border-color:#2a3140}label.brand input{width:17px;height:17px;flex:0 0 auto;margin-top:2px}
-.meta{min-width:0;flex:1}
-.nameRow{display:grid;grid-template-columns:30px 1fr 64px;gap:6px;align-items:start}
-.nameRow .idx{font-variant-numeric:tabular-nums;opacity:.9}
-.nameRow .nm{white-space:normal;word-break:break-word;overflow:visible}
-.nameRow .ct{opacity:.9;text-align:right}
-.meta .name{font-weight:800;font-size:12px;line-height:1.18}
-
-.topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin-bottom:8px;flex:0 0 auto}
-.rightBtns{display:flex;gap:8px;flex-wrap:wrap}
-.statusBox{padding:8px 10px;overflow:auto;flex:1 1 360px;max-height:92px}
-.spre{font-size:13px;font-weight:600;line-height:1.25;white-space:normal}
-.srow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.chip{white-space:nowrap}
+.list{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px;align-content:start}
+.brand{display:flex;align-items:center;padding:7px 10px;border:1px solid #1f2430;border-radius:12px;background:#0f1320;cursor:pointer;user-select:none;width:100%;box-sizing:border-box}
+.brand:hover{border-color:#2a3140}.brand.sel{background:#1f2a44;border-color:#6b7da6}
+.row{display:grid;grid-template-columns:32px 1fr auto;gap:2px;align-items:center;min-width:0}
+.idx{font-variant-numeric:tabular-nums;opacity:.9;white-space:nowrap;margin-right:6px}
+.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:800;font-size:16px;line-height:1.2}
+.ct{white-space:nowrap;opacity:.9;font-size:11px;margin-left:2px}
 
 .tableWrap{flex:1;min-height:0;overflow:auto;border-top:1px solid #1f2430}
-table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #1f2430;padding:10px 8px;text-align:left;vertical-align:top}
-th{font-size:12px;color:#cbd5e1;position:sticky;top:0;background:#0b0d12}td{font-size:13px;color:#eaeef7}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid #1f2430;padding:10px 8px;text-align:left;vertical-align:top}
+th{
+  position:sticky;top:0;background:#0b0d12;
+  font-size:16px;font-weight:800; /* ✅ markalarla aynı font + bold */
+  color:#eaeef7;
+}
+td{font-size:16px;font-weight:400}
 a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
 .ok{color:#86efac}.bad{color:#fca5a5}.unk{color:#fcd34d}
 @media (max-width:1100px){main{grid-template-columns:1fr}.list{grid-template-columns:1fr}}
 @media (max-width:900px){aside{border-right:0;border-bottom:1px solid #1f2430}th{position:static}}
 </style></head><body><main>
-<aside><div class=btnrow><button id=btnAll>Tümünü Seç</button><button id=btnNone>Temizle</button><button id=btnScan>Taramayı Başlat</button></div><div class=list id=brandList></div></aside>
-<section><div class=topbar><div class=rightBtns><button id=btnExport disabled>CSV Export</button><button id=btnClear disabled>Sonuçları Temizle</button></div><div class=statusBox id=status>Hazır.</div></div>
-<div class=tableWrap><table><thead><tr><th>Sıra No</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>Stok</th><th>EAN</th></tr></thead><tbody id=rows></tbody></table></div></section>
+<aside>
+  <div class="btnrow">
+    <button id="btnAll">Tümünü Seç</button>
+    <button id="btnNone">Temizle</button>
+    <button id="btnScan">Tarama Başlat</button>
+    <button id="btnStop" disabled>Durdur</button>
+    <button id="btnExport" disabled>CSV Çıktı</button>
+  </div>
+  <div class="ibox" id="info"></div>
+  <div class="list" id="brandList"></div>
+</aside>
+
+<section>
+  <div class="tableWrap">
+    <table><thead><tr>
+      <th>Sıra No</th><th>Marka</th><th>Ürün Adı</th><th>Ürün Kodu</th><th>Stok</th><th>EAN</th>
+    </tr></thead><tbody id="rows"></tbody></table>
+  </div>
+</section>
 </main><script>
 const API_BASE="https://robot-workstation.tvkapora.workers.dev",$=id=>document.getElementById(id),
-E={l:$("brandList"),a:$("btnAll"),n:$("btnNone"),s:$("btnScan"),x:$("btnExport"),c:$("btnClear"),t:$("status"),r:$("rows")};
-let B=[],S=new Set,R=[],N=0,Exp=new Map,Found=new Map,Rep=new Map;
+E={l:$("brandList"),a:$("btnAll"),n:$("btnNone"),s:$("btnScan"),p:$("btnStop"),x:$("btnExport"),i:$("info"),r:$("rows")};
+
+let B=[],S=new Set,R=[],N=0,Exp=new Map,Found=new Map,abortCtrl=null,scanning=false;
+const DISP=new Map([["Marantz Professional","Marantz Prof."],["Rupert Neve Designs","Rupert Neve D."]]),dn=n=>DISP.get(n)||n;
 const esc=s=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
-const setScan=o=>{E.s.disabled=o;E.a.disabled=o;E.n.disabled=o;};
+const info=s=>{E.i.textContent=s||""};
+
+const setScanState=on=>{
+  scanning=on;
+  E.s.disabled=on; E.a.disabled=on; E.x.disabled=on||R.length===0;
+  E.p.disabled=!on;
+};
+
 const rowCls=st=>{const t=(st||"").toLowerCase();return t.includes("yok")?"bad":t.includes("bilinmiyor")?"unk":"ok"};
-const setText=s=>E.t.innerHTML=`<div class=spre>${esc(s).replaceAll("\n","<br>")}</div>`;
 const sum=chosen=>{const L=[];for(const b of chosen){const e=Exp.get(b.name),f=Found.get(b.name)||0;
-L.push(typeof e==="number"?`${b.name}: ${f}/${e} ${f===e?"✅":`⚠️ (fark ${f-e})`}`:`${b.name}: ${f}/?`)}return L.join("\n")};
-function setDone(total,chosen){
-const lines=sum(chosen).split("\n").filter(Boolean);
-E.t.innerHTML=`<div class=srow><span class=chip>Bitti. Toplam ürün: ${total}</span><span class=chip>Kontrol (Bulunan/Beklenen):</span>${lines.map(x=>`<span class=chip>${esc(x)}</span>`).join("")}</div>`}
+  L.push(typeof e==="number"?`${b.name}: ${f}/${e} ${f===e?"✅":`⚠️ (fark ${f-e})`}`:`${b.name}: ${f}/?`)}return L.join("\n")};
+
 function render(){
-E.l.innerHTML="";
-[...B].sort((a,b)=>a.name.localeCompare(b.name,"tr",{sensitivity:"base"})).forEach((b,i)=>{
-const lb=document.createElement("label");lb.className="brand";
-const cb=document.createElement("input");cb.type="checkbox";cb.checked=S.has(b.id);
-cb.addEventListener("change",()=>cb.checked?S.add(b.id):S.delete(b.id));
-const meta=document.createElement("div");meta.className="meta";
-const nm=document.createElement("div");nm.className="name";
-const row=document.createElement("div");row.className="nameRow";
-const s1=document.createElement("span");s1.className="idx";s1.textContent=`${i+1})`;
-const s2=document.createElement("span");s2.className="nm";s2.textContent=b.name;
-const s3=document.createElement("span");s3.className="ct";s3.textContent=`(${b.count})`;
-row.append(s1,s2,s3);nm.appendChild(row);meta.appendChild(nm);lb.append(cb,meta);E.l.appendChild(lb)})}
+  E.l.innerHTML="";
+  [...B].sort((a,b)=>a.name.localeCompare(b.name,"tr",{sensitivity:"base"})).forEach((b,i)=>{
+    const d=document.createElement("div");
+    d.className="brand"+(S.has(b.id)?" sel":""); d.tabIndex=0; d.dataset.id=b.id;
+    d.innerHTML=`<div class=row><span class=idx>${i+1})</span><span class=nm title="${esc(dn(b.name))}">${esc(dn(b.name))}</span><span class=ct>(${esc(b.count)})</span></div>`;
+    E.l.appendChild(d);
+  });
+}
+
+const toggle=(id,el)=>{S.has(id)?(S.delete(id),el.classList.remove("sel")):(S.add(id),el.classList.add("sel"))};
+E.l.addEventListener("click",e=>{const el=e.target.closest(".brand");if(!el)return;toggle(+el.dataset.id,el)});
+E.l.addEventListener("keydown",e=>{if(e.key!=="Enter"&&e.key!==" ")return;const el=e.target.closest(".brand");if(!el)return;e.preventDefault();toggle(+el.dataset.id,el)});
+
 function add(r){
-N++;const o={sıra:N,brand:r.brand||"",title:r.title||"Ürün",productCode:r.productCode||"",stock:r.stock||"",ean:r.ean||"",url:r.url||""};R.push(o);
-const tr=document.createElement("tr"),tdNo=document.createElement("td");tdNo.textContent=String(o.sıra);
-const tdB=document.createElement("td");tdB.textContent=o.brand;
-const tdT=document.createElement("td");
-if(o.url){const a=document.createElement("a");a.href=o.url;a.target="_blank";a.rel="noopener";a.textContent=o.title;tdT.appendChild(a)}else tdT.textContent=o.title;
-const tdC=document.createElement("td");tdC.textContent=o.productCode;
-const tdS=document.createElement("td");tdS.textContent=o.stock;tdS.className=rowCls(o.stock);
-const tdE=document.createElement("td");tdE.textContent=o.ean;
-tr.append(tdNo,tdB,tdT,tdC,tdS,tdE);E.r.appendChild(tr);
-E.x.disabled=R.length===0;E.c.disabled=R.length===0}
-function clear(){
-R=[];N=0;E.r.innerHTML="";E.x.disabled=true;E.c.disabled=true;
-Exp=new Map;Found=new Map;Rep=new Map;setText("Temizlendi.")}
+  N++;
+  const o={sıra:N,brand:r.brand||"",title:r.title||"Ürün",productCode:r.productCode||"",stock:r.stock||"",ean:r.ean||"",url:r.url||""};
+  R.push(o);
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td>${o.sıra}</td><td>${esc(o.brand)}</td><td></td><td>${esc(o.productCode)}</td><td class="${rowCls(o.stock)}">${esc(o.stock)}</td><td>${esc(o.ean)}</td>`;
+  const tdT=tr.children[2];
+  if(o.url){const a=document.createElement("a");a.href=o.url;a.target="_blank";a.rel="noopener";a.textContent=o.title;tdT.appendChild(a)}
+  else tdT.textContent=o.title;
+  E.r.appendChild(tr);
+  E.x.disabled=scanning||R.length===0;
+}
+
+function clearAll(){
+  if(scanning && abortCtrl) abortCtrl.abort();
+  S.clear(); R=[]; N=0; E.r.innerHTML=""; Exp=new Map; Found=new Map;
+  render(); E.x.disabled=true; info("Temizlendi."); setScanState(false);
+}
+
 function csv(){
-const D=";",v=x=>{const s=String(x??"");return(s.includes('"')||s.includes("\n")||s.includes("\r")||s.includes(D))?`"${s.replaceAll('"','""')}"`:s;};
-const h=["Sıra No","Marka","Ürün Adı","Ürün Kodu","Stok","EAN"].map(v).join(D);
-const L=R.map(r=>[r.sıra,r.brand,r.title,r.productCode,r.stock,r.ean].map(v).join(D));
-const out="\ufeff"+[h,...L].join("\r\n"),blob=new Blob([out],{type:"text/csv;charset=utf-8"});
-const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="compel-sonuc.csv";document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove()}
+  const D=";",v=x=>{const s=String(x??"");return(s.includes('"')||s.includes("\n")||s.includes("\r")||s.includes(D))?`"${s.replaceAll('"','""')}"`:s;};
+  const h=["Sıra No","Marka","Ürün Adı","Ürün Kodu","Stok","EAN"].map(v).join(D);
+  const L=R.map(r=>[r.sıra,r.brand,r.title,r.productCode,r.stock,r.ean].map(v).join(D));
+  const out="\ufeff"+[h,...L].join("\r\n"),blob=new Blob([out],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="compel-sonuc.csv";document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove();
+}
+
 async function load(){
-setText("Markalar yükleniyor (compel.com.tr/markalar)...");const res=await fetch(`${API_BASE}/api/brands`,{cache:"no-store"});
-if(!res.ok){const t=await res.text().catch(()=> "");throw new Error(`API /api/brands hata: ${res.status}\n${t}`)}
-B=await res.json();render();setText(`Hazır. Marka sayısı: ${B.length}\nNot: Adetler compel.com.tr/markalar sayfasından çekilir.`)}
+  info("Markalar yükleniyor...");
+  const res=await fetch(`${API_BASE}/api/brands`,{cache:"no-store"});
+  if(!res.ok){const t=await res.text().catch(()=> "");throw new Error(`API /api/brands hata: ${res.status}\n${t}`)}
+  B=await res.json(); render();
+  info(`Hazır. Marka sayısı: ${B.length}`);
+}
+
 async function scan(){
-if(!S.size){setText("En az 1 marka seç.");return}
-clear();setScan(true);setText("Başladı...");
-const chosen=B.filter(b=>S.has(b.id));Exp=new Map(chosen.map(b=>[b.name,Number(b.count)]).filter(x=>Number.isFinite(x[1])));
-const res=await fetch(`${API_BASE}/api/scan`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({brands:chosen})});
-if(!res.ok){const t=await res.text().catch(()=> "");setText(`Hata: ${res.status}\n${t}`);setScan(false);return}
-const rd=res.body?.getReader?.();if(!rd){setText("Tarama bitti (stream yok).");setScan(false);return}
-const dec=new TextDecoder();let buf="",total=0;
-while(true){
-const {value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
-let i;while((i=buf.indexOf("\n"))>=0){
-const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line)continue;const m=JSON.parse(line);
-if(m.type==="brandStart"||m.type==="page"){
-const e=Exp.get(m.brand),f=Found.get(m.brand)||0;
-setText(`Taranıyor: ${m.brand} (sayfa ${m.page}/${m.pages})\nBulunan/Beklenen: ${f}/${(typeof e==="number"?e:"?")}`)}
-else if(m.type==="product"){total++;const bn=m.data?.brand||"";if(bn)Found.set(bn,(Found.get(bn)||0)+1);add(m.data)}
-else if(m.type==="brandDone"){
-Rep.set(m.brand,{expected:m.expected??null,found:m.found??0});
-const e=typeof m.expected==="number"?m.expected:Exp.get(m.brand);
-const f=typeof m.found==="number"?m.found:(Found.get(m.brand)||0);
-const ok=typeof e==="number"?f===e:null;
-E.t.innerHTML=`<div class=srow><span class=chip>${esc(m.brand)} bitti.</span><span class=chip>Bulunan/Beklenen: ${f}/${(typeof e==="number"?e:"?")} ${ok===true?"✅":ok===false?"⚠️":""}</span><span class=chip>Genel Toplam: ${total}</span></div><div class=spre style="margin-top:6px">${esc(sum(chosen)).replaceAll("\n","<br>")}</div>`}
-else if(m.type==="done"){setDone(total,chosen)}
-else if(m.type==="error"){setText(`Hata: ${m.message}`)}}}
-setScan(false)}
-E.a.addEventListener("click",()=>{B.forEach(b=>S.add(b.id));render()});
-E.n.addEventListener("click",()=>{S.clear();render()});
-E.s.addEventListener("click",scan);
-E.x.addEventListener("click",csv);
-E.c.addEventListener("click",clear);
-load().catch(e=>setText("Markalar yüklenemedi:\n"+(e?.message||e)));
+  if(scanning) return;
+  if(!S.size){info("En az 1 marka seç.");return;}
+  R=[];N=0;E.r.innerHTML="";Found=new Map;
+  setScanState(true); info("Başladı...");
+
+  const chosen=B.filter(b=>S.has(b.id));
+  Exp=new Map(chosen.map(b=>[b.name,Number(b.count)]).filter(x=>Number.isFinite(x[1])));
+
+  abortCtrl=new AbortController();
+  try{
+    const res=await fetch(`${API_BASE}/api/scan`,{
+      method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({brands:chosen}),
+      signal:abortCtrl.signal
+    });
+    if(!res.ok){const t=await res.text().catch(()=> "");info(`Hata: ${res.status}\n${t}`);setScanState(false);return;}
+    const rd=res.body?.getReader?.(); if(!rd){info("Tarama bitti (stream yok).");setScanState(false);return;}
+
+    const dec=new TextDecoder(); let buf="",total=0;
+    while(true){
+      const {value,done}=await rd.read(); if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      let i; while((i=buf.indexOf("\n"))>=0){
+        const line=buf.slice(0,i).trim(); buf=buf.slice(i+1);
+        if(!line) continue;
+        const m=JSON.parse(line);
+
+        if(m.type==="brandStart"||m.type==="page"){
+          const e=Exp.get(m.brand),f=Found.get(m.brand)||0;
+          info(`Taranıyor: ${m.brand} (sayfa ${m.page}/${m.pages})\nBulunan/Beklenen: ${f}/${(typeof e==="number"?e:"?")}`);
+        } else if(m.type==="product"){
+          total++; const bn=m.data?.brand||""; if(bn) Found.set(bn,(Found.get(bn)||0)+1);
+          add(m.data);
+        } else if(m.type==="brandDone"){
+          const e=typeof m.expected==="number"?m.expected:Exp.get(m.brand);
+          const f=typeof m.found==="number"?m.found:(Found.get(m.brand)||0);
+          const ok=typeof e==="number"?f===e:null;
+          info(`${m.brand} bitti.\nBulunan/Beklenen: ${f}/${(typeof e==="number"?e:"?")} ${ok===true?"✅":ok===false?"⚠️":""}\nGenel: ${total}`);
+        } else if(m.type==="done"){
+          const lines=sum(chosen).split("\n").filter(Boolean);
+          info(`Bitti. Toplam ürün: ${total}\nKontrol:\n${lines.join("\n")}`);
+        } else if(m.type==="error"){
+          info(`Hata: ${m.message}`);
+        }
+      }
+    }
+  } catch(e){
+    if(abortCtrl?.signal?.aborted) info("Durduruldu.");
+    else info("Hata:\n"+(e?.message||e));
+  } finally{
+    abortCtrl=null;
+    setScanState(false);
+    E.x.disabled=R.length===0;
+  }
+}
+
+E.a.onclick=()=>{B.forEach(b=>S.add(b.id));render()};
+E.n.onclick=clearAll;
+E.s.onclick=scan;
+E.p.onclick=()=>{if(scanning && abortCtrl) abortCtrl.abort();};
+E.x.onclick=csv;
+
+load().catch(e=>info("Markalar yüklenemedi:\n"+(e?.message||e)));
 </script></body></html>
